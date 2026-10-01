@@ -1,0 +1,207 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+:root {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.ledger-display {
+  font-family: 'Space Grotesk', 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+.ledger-ticks {
+  background-image: repeating-linear-gradient(90deg, transparent 0 23px, rgba(194, 221, 232, .28) 23px 24px);
+  mask-image: linear-gradient(90deg, transparent, black 48%, transparent 100%);
+}
+
+/* Custom scrollbars for dense financial data tables */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Glossy Silver Metal & Liquid Chrome Aesthetic */
+.glossy-silver {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(148, 163, 184, 0.08) 35%, rgba(255, 255, 255, 0.04) 65%, rgba(255, 255, 255, 0.14) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.5), inset 0 -1px 1px 0 rgba(0, 0, 0, 0.4), 0 8px 32px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(16px);
+}
+
+.glossy-silver-panel {
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.7) 50%, rgba(2, 6, 23, 0.8) 100%);
+  border: 1px solid rgba(226, 232, 240, 0.2);
+  box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.35), 0 12px 40px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(20px);
+}
+
+.glossy-silver-pill {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, rgba(148, 163, 184, 0.1) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.silver-text-gradient {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 20%, #CBD5E1 55%, #94A3B8 80%, #E2E8F0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.platinum-text-gradient {
+  background: linear-gradient(180deg, #FFFFFF 0%, #E2E8F0 40%, #94A3B8 75%, #CBD5E1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.chrome-reflection {
+  background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.3) 45%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.3) 55%, transparent 80%);
+}
+
+/* The navigation control stays available on every authenticated view. */
+.theme-toggle,
+.theme-floating-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  min-height: 34px;
+  padding: .35rem .6rem;
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: .6rem;
+  background: rgba(255,255,255,.07);
+  color: #e2e8f0;
+  font: 600 11px 'JetBrains Mono', ui-monospace, monospace;
+  cursor: pointer;
+  transition: background .2s, border-color .2s, color .2s;
+}
+.theme-toggle:hover, .theme-floating-toggle:hover { background: rgba(255,255,255,.15); }
+.theme-toggle:focus-visible, .theme-floating-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.theme-toggle-track { display: inline-flex; align-items: center; width: 27px; height: 15px; padding: 2px; border-radius: 999px; background: #52606d; }
+.theme-toggle-thumb { width: 11px; height: 11px; border-radius: 50%; background: white; transition: transform .2s; }
+.theme-floating-toggle { position: fixed; right: 18px; top: 18px; z-index: 60; }
+.ledger-app {
+  color-scheme: dark;
+  --chart-teal: #8bd8c1;
+  --chart-teal-top: #b1f0db;
+  --chart-amber: #edbc74;
+  --chart-amber-top: #f6d291;
+  --chart-blue: #91b9ee;
+  --chart-violet: #bba5e7;
+  --chart-red: #df8f95;
+  --chart-muted: #97a5b1;
+  --chart-axis: #94a3b8;
+  --chart-grid: #c8e1e52b;
+  --chart-tooltip: #111b20;
+  --chart-ink: #f8fafc;
+  --chart-cursor: #ffffff0b;
+}
+.activity-heat { border: 1px solid transparent; }
+.activity-heat-0 { background: #182528; border-color: #34484a; }
+.activity-heat-1 { background: #295e51; border-color: #427f6c; }
+.activity-heat-2 { background: #458e77; border-color: #68ae95; }
+.activity-heat-3 { background: #76c2a6; border-color: #a3dec8; }
+.activity-heat-4 { background: #e3faf0; border-color: #fff; box-shadow: 0 0 9px #a3dec885; }
+html[data-theme="light"] .activity-heat-0 { background: #e9eff0; border-color: #d8e3e5; }
+html[data-theme="light"] .activity-heat-1 { background: #c2ddd3; border-color: #9ecabb; }
+html[data-theme="light"] .activity-heat-2 { background: #84bfa9; border-color: #61a88e; }
+html[data-theme="light"] .activity-heat-3 { background: #3c9a7a; border-color: #268668; }
+html[data-theme="light"] .activity-heat-4 { background: #096a51; border-color: #07533f; box-shadow: 0 0 0 2px #a9d9c6; }
+html[data-theme="light"] .theme-toggle-track { background: #168473; }
+html[data-theme="light"] .theme-toggle-thumb { transform: translateX(12px); }
+
+/* Light LedgerLens uses ink on paper. Auth pages already have their own light design. */
+html[data-theme="light"] .ledger-app {
+  color-scheme: light;
+  --ll-canvas: #f3f6f7;
+  --ll-surface: #ffffff;
+  --ll-surface-raised: #eaf0f2;
+  --ll-ink: #182b35;
+  --ll-muted: #526773;
+  --ll-rule: #cbd7dc;
+  background: var(--ll-canvas);
+  background-image: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(61,133,137,.10), transparent 70%);
+  color: var(--ll-ink);
+  --chart-teal: #15816d;
+  --chart-teal-top: #52b59c;
+  --chart-amber: #bd7223;
+  --chart-amber-top: #e7aa59;
+  --chart-blue: #4e72b6;
+  --chart-violet: #8165b3;
+  --chart-red: #b55565;
+  --chart-muted: #647988;
+  --chart-axis: #657a84;
+  --chart-grid: #d7e1e5;
+  --chart-tooltip: #ffffff;
+  --chart-ink: #152d38;
+  --chart-cursor: #dcece8;
+}
+html[data-theme="light"] .ledger-app :is(.bg-black, [class*="bg-black/"], .bg-zinc-950, [class*="bg-zinc-950/"], .bg-zinc-900, [class*="bg-zinc-900/"], .bg-zinc-850, [class*="bg-zinc-850/"], .bg-zinc-800, [class*="bg-zinc-800/"], [class*="bg-[#"], [class*="bg-[linear-gradient"]) {
+  background-color: var(--ll-surface);
+  background-image: none;
+}
+html[data-theme="light"] .ledger-app .bg-gradient-to-b.from-zinc-800\/80 { background: linear-gradient(160deg, #fff, #edf3f4); }
+html[data-theme="light"] .ledger-app .bg-gradient-to-b.from-zinc-800\/80[class*="shadow-["] { box-shadow: 0 6px 18px rgba(30,65,75,.10); }
+html[data-theme="light"] .ledger-app :is([class*="bg-white/"], [class*="bg-white/["], [class*="bg-black/["], .bg-neutral-800) {
+  background-color: var(--ll-surface-raised);
+}
+html[data-theme="light"] .ledger-app :is(.text-white, .text-slate-100, .text-slate-200, .text-slate-300, .text-black, .text-slate-900) { color: var(--ll-ink); }
+html[data-theme="light"] .ledger-app :is(.text-slate-400, .text-slate-500, .text-slate-600, .text-slate-700, .text-slate-800) { color: var(--ll-muted); }
+html[data-theme="light"] .ledger-app :is([class*="border-white"], .border-slate-700, [class*="border-slate-700/"], .border-slate-300) { border-color: var(--ll-rule); }
+html[data-theme="light"] .ledger-app :is(.text-emerald-200, .text-emerald-300, .text-emerald-600, .text-green-600) { color: #08725c; }
+html[data-theme="light"] .ledger-app :is(.text-amber-100, .text-amber-200, .text-amber-300, .text-amber-400, .text-amber-500) { color: #875305; }
+html[data-theme="light"] .ledger-app :is(.text-red-200, .text-red-300, .text-red-400, .text-red-500, .text-red-600, .text-rose-200, .text-rose-300) { color: #b3273b; }
+html[data-theme="light"] .ledger-app .text-blue-400 { color: #345caa; }
+html[data-theme="light"] .ledger-app :is(.bg-red-950\/20, .bg-red-950\/30, .bg-red-950\/40) { background-color: #fff0f1; }
+html[data-theme="light"] .ledger-app :is(.bg-amber-950\/80, .bg-emerald-950\/70) { background-color: #f1f7f4; }
+html[data-theme="light"] .ledger-app :is(.bg-red-600, .bg-red-500, .bg-blue-600, .bg-emerald-500, .bg-emerald-700\/80) { color: #fff; }
+html[data-theme="light"] .ledger-app :is(.bg-red-600, .bg-red-500, .bg-blue-600, .bg-emerald-500, .bg-emerald-700\/80) .text-white { color: #fff; }
+html[data-theme="light"] .ledger-app :is(.bg-emerald-200, .bg-emerald-300, .bg-amber-300, .bg-indigo-200, .bg-slate-200, .bg-slate-300) { color: #18313b; }
+html[data-theme="light"] .ledger-app :is(.bg-emerald-200, .bg-emerald-300, .bg-amber-300, .bg-indigo-200, .bg-slate-200, .bg-slate-300) .text-white { color: #18313b; }
+html[data-theme="light"] .ledger-app :is([class*="shadow-["], .shadow-2xl, .shadow-xl) { box-shadow: 0 6px 22px rgba(29, 61, 70, .11); }
+html[data-theme="light"] .ledger-app > header { box-shadow: 0 3px 12px rgba(29, 61, 70, .10); }
+html[data-theme="light"] .ledger-app :is(.bg-clip-text.text-transparent, .silver-text-gradient, .platinum-text-gradient) {
+  background-image: linear-gradient(120deg, #132b38, #287e79);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+html[data-theme="light"] .ledger-app :is(input, select, textarea) { color-scheme: light; }
+html[data-theme="light"] .ledger-app :is(input, select, textarea)::placeholder { color: #748690; opacity: 1; }
+html[data-theme="light"] .ledger-app :is(button, a, input, select, textarea):focus-visible { outline-color: #087f70; }
+html[data-theme="light"] .ledger-app ::selection { background: #c9e5dd; color: #102c28; }
+html[data-theme="light"] .ledger-app .glossy-silver,
+html[data-theme="light"] .ledger-app .glossy-silver-panel,
+html[data-theme="light"] .ledger-app .glossy-silver-pill {
+  background: linear-gradient(160deg, #fff, #e9f0f2);
+  border-color: #cad9df;
+  box-shadow: inset 0 1px 0 #fff, 0 8px 24px rgba(34,69,79,.08);
+}
+html[data-theme="light"] .ledger-app .theme-toggle,
+html[data-theme="light"] .ledger-app .theme-floating-toggle { background: #e9f0f2; color: #1b3941; border-color: #c4d3d7; }
+html[data-theme="light"] .ledger-app .theme-toggle:hover,
+html[data-theme="light"] .ledger-app .theme-floating-toggle:hover { background: #dcebed; }
+.ledger-app .theme-artwork { background: #a8e0c4; }
+html[data-theme="light"] .ledger-app .theme-artwork { background: #84c6a2; }
+.ledger-app .liquidity-copy { color: #153d31; text-shadow: 0 1px 2px rgba(255,255,255,.38); }
