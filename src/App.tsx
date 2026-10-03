@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0

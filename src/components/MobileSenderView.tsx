@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, CheckCircle2, Send, Smartphone, Wifi, Utensils, BriefcaseBusiness, Laptop, ShoppingBag, Target } from "lucide-react";
 import { CATEGORIES, type Category } from "../../shared/categories.ts";

@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import { useState } from "react";
 import { Copy, ExternalLink, Smartphone } from "lucide-react";
 import { FinanceDialog } from "./FinanceDialog.tsx";

@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 export function startSpeech(
   onText: (text: string) => void,
   onEnd: () => void,

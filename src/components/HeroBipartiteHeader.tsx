@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import React, { useRef, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { sound } from '../utils/audioSynthesizer';

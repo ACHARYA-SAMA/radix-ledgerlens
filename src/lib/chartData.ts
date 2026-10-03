@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import type { Transaction } from "../types/finance.ts";
 import { isTransfer, signedPaise } from "./analyticsMath.ts";
 

@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 /** Keep tunnel or server HTML errors out of JSON.parse and present a useful message. */
 export async function readJsonResponse<T>(response: Response, endpoint: string): Promise<T> {
   const body = await response.text();

@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import type { Row } from "./nova.ts";
 import type { BeneficiaryChange, FraudWarning } from "../src/types/finance.ts";
 export function checkBeneficiaryChanges(

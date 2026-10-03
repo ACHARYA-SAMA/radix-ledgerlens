@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 export type TraceStep = { index: number; [key: string]: unknown };
 
 /** Read the protected SSE replay with the same bearer headers used by other API calls. */

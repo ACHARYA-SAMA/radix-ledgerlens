@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import type { Transaction } from "../types/finance.ts";
 
 export const paise = (rupees: number) => Math.round(rupees * 100);

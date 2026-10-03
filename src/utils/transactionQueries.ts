@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import { ANALYTICS_DATA, INITIAL_TRANSACTIONS } from '../data/mockTransactions.ts';
 import type { Transaction } from '../types/finance.ts';
 

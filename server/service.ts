@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import { randomBytes, randomUUID } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { NovaClient, type Row } from "./nova.ts";

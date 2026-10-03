@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import type { Row } from "./nova.ts";
 import type {
   Transaction,

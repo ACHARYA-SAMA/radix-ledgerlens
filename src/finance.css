@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 .finance-shell, .finance-dialog, .finance-toast-stack {
   --finance-bg: #090e12; --finance-surface: #10191e; --finance-line: #263238; --finance-text: #edf3f0;
   --finance-muted: #9aaeb0; --finance-mint: #a2dfc3; --finance-accent-ink: #173a2c; --finance-soft: #16272a;

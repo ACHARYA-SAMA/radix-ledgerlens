@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import React, { useRef, useState } from 'react';
 import { sound } from '../utils/audioSynthesizer';
 

@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import { displayText } from "../../shared/branding.ts";
 import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";

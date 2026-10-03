@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import type { Transaction, BeneficiaryChange, VoiceNote, AnalyticsSummary } from '../types/finance';
 
 export const INITIAL_TRANSACTIONS: Transaction[] = [

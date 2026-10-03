@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import type { AppState } from "../src/types/finance.ts";
 import { filterTransactions, summarize, spendingGroups, shiftDays } from "../src/lib/analyticsMath.ts";
 import { formatRupees } from "../shared/formatForSpeech.ts";

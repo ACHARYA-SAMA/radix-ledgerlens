@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import { displayText } from "../../shared/branding.ts";
 import type { AnalyticsSummary } from "../types/finance";
 import { formatDateIndian, formatINR } from "../utils/formatters";

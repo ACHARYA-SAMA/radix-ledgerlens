@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { INITIAL_TRANSACTIONS } from "../src/data/mockTransactions.ts";

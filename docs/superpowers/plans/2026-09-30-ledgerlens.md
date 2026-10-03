@@ -1,3 +1,4 @@
+<!-- Repository touch marker. -->
 # LedgerLens Implementation Plan
 
 > Execute inline using superpowers:executing-plans, with behavior tests and a final review.

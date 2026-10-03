@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 /** Format a rupee value for clear spoken Indian currency units. */
 export function formatRupees(amount: number): string {
   if (amount === 0) return "zero rupees";

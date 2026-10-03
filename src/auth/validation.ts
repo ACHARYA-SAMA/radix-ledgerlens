@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 // ========================================
 // Validation — shared client + server
 // ========================================

@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 export const NOVA_BASE_URL = "https://www.aczen.in/nova-api/v1";
 export type Row = { id: string; [field: string]: any };
 export type Params = Record<string, string | number | boolean>;

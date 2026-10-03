@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import { useId, useState } from "react";
 import { displayText } from "../../shared/branding.ts";
 import {

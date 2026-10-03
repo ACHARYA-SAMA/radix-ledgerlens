@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 'use client';
 
 import { useEffect, useRef } from 'react';

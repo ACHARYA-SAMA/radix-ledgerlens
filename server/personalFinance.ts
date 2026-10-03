@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import { randomUUID, createHash } from "node:crypto";
 import type { LedgerService } from "./service.ts";
 import type { Transaction } from "../src/types/finance.ts";

@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import { useMemo, useState } from "react";
 import { ArrowDownRight, ArrowUpRight, Bell, Download, Plus, Settings2, Sparkles, Target, TrendingUp, Wallet, Pencil, Check } from "lucide-react";
 import type { AppState } from "../types/finance.ts";

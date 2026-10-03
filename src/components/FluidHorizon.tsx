@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { sound } from '../utils/audioSynthesizer';
 import { Volume2, VolumeX, Activity, Radio, Sparkles } from 'lucide-react';

@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import { CATEGORIES, type Category } from "./categories.ts";
 import type { Transaction, SubscriptionSummary } from "../src/types/finance.ts";
 import { isTransfer, signedPaise, shiftDays } from "../src/lib/analyticsMath.ts";

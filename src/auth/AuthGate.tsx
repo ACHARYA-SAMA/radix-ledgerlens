@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import App from "../App";

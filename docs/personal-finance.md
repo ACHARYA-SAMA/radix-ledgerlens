@@ -1,3 +1,4 @@
+<!-- Repository touch marker. -->
 # Personal financial intelligence
 
 ## Architecture and data preservation

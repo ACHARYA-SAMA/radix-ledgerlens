@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 export interface ArchitectureNode {
   id: string;
   label: string;

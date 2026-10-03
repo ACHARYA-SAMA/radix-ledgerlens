@@ -1,3 +1,4 @@
+<!-- Repository touch marker. -->
 # Radix LedgerLens
 
 Finathon FIN-19 prototype using the existing Radix UI, React/Vite, a local Express server, SQLite, Account Aggregator (AA) Bank Sync, and Gemini 3.8 Flash.

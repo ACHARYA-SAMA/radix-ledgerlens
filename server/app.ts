@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import express from "express";
 import { LedgerService, ServiceError } from "./service.ts";
 import { requireAuth, type VerifyToken } from "./auth.ts";

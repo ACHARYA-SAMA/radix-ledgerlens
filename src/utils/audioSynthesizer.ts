@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 /**
  * Web Audio ASMR Synthesizer
  * Produces physical acoustic plucks (sine/triangle with exponential decay)

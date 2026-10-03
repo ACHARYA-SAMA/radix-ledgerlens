@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { streamTrace } from "../src/lib/traceStream.ts";

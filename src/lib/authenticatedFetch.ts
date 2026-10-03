@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 interface SessionAccess {
   headers(): Promise<Record<string, string>>;
   refresh(): Promise<boolean>;

@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import { displayText } from "../../shared/branding.ts";
 import { useState } from "react";
 import type { PlanningState } from "../../shared/planning.ts";

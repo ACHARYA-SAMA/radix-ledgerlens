@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 export const CATEGORIES = {
   customer_receipt: "Customer receipt",
   vendor_payment: "Vendor payment",

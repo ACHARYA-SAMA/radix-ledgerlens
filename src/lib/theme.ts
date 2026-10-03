@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 export type Theme = "dark" | "light";
 
 const storageKey = "ledgerlens-theme";

@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { BankAccountSummary, BeneficiaryChange, SubscriptionSummary, Transaction } from "../types/finance.ts";

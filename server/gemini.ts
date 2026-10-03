@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import { CATEGORIES, isCategory, type Category } from "../shared/categories.ts";
 export interface Prediction {
   id: string;

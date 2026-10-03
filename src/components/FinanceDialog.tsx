@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 import { useEffect, useRef, useId, type ReactNode } from "react";
 import { X } from "lucide-react";
 

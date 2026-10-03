@@ -1,3 +1,4 @@
+/* Repository touch marker. */
 export type PaymentRail =
   | "NEFT"
   | "RTGS"
