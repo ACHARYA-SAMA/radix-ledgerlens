@@ -46,6 +46,9 @@ export interface FraudWarning {
 }
 
 export interface Transaction {
+  requestId?: string;
+  goalId?: string;
+  agentMetadata?: import("../../shared/memory.ts").AgentMetadata;
   origin?: "phone" | "n8n";
   receivedAt?: string;
   accountId?: string;
@@ -166,6 +169,7 @@ export interface SubscriptionSummary {
   autoRenew: boolean;
 }
 export interface AppState {
+  memory?: import("../../shared/memory.ts").AgentMemory;
   planning?: import("../../shared/planning.ts").PlanningState;
   importedTransactionCount?: number;
   liveTransactionCount?: number;

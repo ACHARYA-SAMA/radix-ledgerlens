@@ -5,6 +5,10 @@ import type { Transaction } from "../src/types/finance.ts";
 import { CATEGORIES, isCategory } from "../shared/categories.ts";
 import { seedPlanning, planningMetrics, validDate, todayIndia, inr, type PlanningState, type FinancialProfile, type CoachReport } from "../shared/planning.ts";
 import { ServiceError } from "./errors.ts";
+import { adaptiveMetrics, merchantKey, type PreferenceRule } from "../shared/memory.ts";
+import { preferenceDefaults } from "../shared/planning.ts";
+import { ledgerRows, prepareLearning, rebuildMemory } from "./memory.ts";
+import { localAgentMetadata, livePipelineTrace } from "./agentPipeline.ts";
 
 const object = (body: unknown): Record<string, any> => {
   if (!body || typeof body !== "object" || Array.isArray(body)) throw new ServiceError("Send a JSON object.");
@@ -24,7 +28,7 @@ const requireReady = (service: LedgerService) => {
 
 export function getPlanning(service: LedgerService): PlanningState {
   const current = service.store.get<PlanningState>("planning", "current");
-  if (current) return current;
+  if (current) return { ...current, profile: { ...preferenceDefaults, ...current.profile } };
   const plan = seedPlanning(service.snapshot?.transactions ?? [], service.snapshot?.dataDate ?? todayIndia());
   if (service.ready && service.snapshot && service.store.team) service.store.put("planning", "current", plan);
   return plan;
@@ -34,13 +38,25 @@ export function updatePlanning(service: LedgerService, input: unknown) {
   requireReady(service);
   const body = object(input);
   const plan = structuredClone(getPlanning(service));
+  const rows = ledgerRows(service);
+  const asOf = rows.map(t => t.date).sort().at(-1) ?? service.snapshot!.dataDate!;
+  const metrics = adaptiveMetrics(rows, plan, asOf);
+  const reserve = (amount: number) => { const month = asOf.slice(0, 7); plan.allocationsByMonth ??= {}; plan.allocationsByMonth[month] = Math.round(((plan.allocationsByMonth[month] ?? 0) + amount) * 100) / 100; };
   if (body.revision !== plan.revision) throw new ServiceError("Your plan changed in another window. Close and reopen this form to load the latest values.", 409);
   if (body.action === "profile") {
     const p = object(body.profile);
     if (!Number.isFinite(p.savingsTargetPct) || p.savingsTargetPct < 0 || p.savingsTargetPct > 100) throw new ServiceError("Savings target must be between 0 and 100%.");
     if (!Array.isArray(p.alertThresholds) || !p.alertThresholds.length || p.alertThresholds.length > 5 || !p.alertThresholds.every((n: unknown) => typeof n === "number" && Number.isInteger(n) && n >= 1 && n <= 100)) throw new ServiceError("Choose one to five alert thresholds between 1 and 100%.");
     if (![p.renewalReminders, p.voiceAlerts, p.spendingAlerts].every(v => typeof v === "boolean")) throw new ServiceError("Alert preferences must be on or off.");
+    const options = { ...preferenceDefaults, ...plan.profile, ...p };
+    if (!["weekly", "monthly", "yearly"].includes(options.defaultSpendPeriod)) throw new ServiceError("Choose a valid Spend Mix period.");
+    if (!Number.isInteger(options.renewalLeadDays) || options.renewalLeadDays < 1 || options.renewalLeadDays > 30) throw new ServiceError("Renewal notice must be 1–30 days.");
+    if (![options.liveNotifications, options.quietHoursEnabled].every(v => typeof v === "boolean")) throw new ServiceError("Notification settings must be on or off.");
+    if (![options.quietHoursStart, options.quietHoursEnd].every(v => typeof v === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(v))) throw new ServiceError("Choose valid quiet hours.");
+    if (options.priorityGoalId && !plan.goals.some(g => g.id === options.priorityGoalId)) throw new ServiceError("Choose an existing priority goal.");
+    const dailySpendLimit = options.dailySpendLimit == null ? null : money(options.dailySpendLimit, "Daily planning limit", true);
     plan.profile = { name: text(p.name, "Profile name", 60), monthlyIncomeTarget: money(p.monthlyIncomeTarget, "Income target"), savingsTargetPct: p.savingsTargetPct, alertThresholds: [...new Set<number>(p.alertThresholds)].sort((a, b) => a - b), largeTransactionLimit: money(p.largeTransactionLimit, "Large expense limit"), renewalReminders: p.renewalReminders, voiceAlerts: p.voiceAlerts, spendingAlerts: p.spendingAlerts } satisfies FinancialProfile;
+    Object.assign(plan.profile, { defaultSpendPeriod: options.defaultSpendPeriod, priorityGoalId: options.priorityGoalId, renewalLeadDays: options.renewalLeadDays, liveNotifications: options.liveNotifications, quietHoursEnabled: options.quietHoursEnabled, quietHoursStart: options.quietHoursStart, quietHoursEnd: options.quietHoursEnd, dailySpendLimit });
   } else if (body.action === "budget") {
     if (!isCategory(body.category) || ["internal_transfer", "customer_receipt", "other_income", "gateway_settlement"].includes(body.category)) throw new ServiceError("Choose an expense category.");
     const budget = { category: body.category, limit: money(body.limit, "Monthly budget") };
@@ -61,13 +77,30 @@ export function updatePlanning(service: LedgerService, input: unknown) {
     const amount = money(body.amount, "Allocation");
     if (Math.round((goal.saved + amount) * 100) > Math.round(goal.target * 100)) throw new ServiceError("This allocation exceeds the remaining goal amount.");
     goal.saved = Math.round((goal.saved + amount) * 100) / 100;
+    reserve(amount);
+  } else if (body.action === "rebalance") {
+    const suggestion = metrics.rebalances.find(r => r.fromCategory === body.fromCategory && r.toCategory === body.toCategory);
+    if (!suggestion || suggestion.suggestedAmount !== body.amount) throw new ServiceError("This forecast changed. Refresh and use the current rebalance suggestion.", 409);
+    const from = plan.budgets.find(b => b.category === suggestion.fromCategory)!;
+    const to = plan.budgets.find(b => b.category === suggestion.toCategory)!;
+    from.limit = Math.round((from.limit - suggestion.suggestedAmount) * 100) / 100;
+    to.limit = Math.round((to.limit + suggestion.suggestedAmount) * 100) / 100;
+  } else if (body.action === "micro-sweep") {
+    const goal = plan.goals.find(g => g.id === metrics.topGoal?.id);
+    if (!goal || metrics.microSweepAmount <= 0 || body.id !== goal.id || body.amount !== metrics.microSweepAmount) throw new ServiceError("No current sweep is available. Refresh your plan.", 409);
+    goal.saved = Math.round((goal.saved + metrics.microSweepAmount) * 100) / 100;
+    reserve(metrics.microSweepAmount);
+  } else if (body.action === "daily-lock") {
+    plan.profile.dailySpendLimit = Math.floor(metrics.safeToSpend * 100) / 100;
   } else if (body.action === "clear-sample-balances") {
     if (!plan.starterPlan) throw new ServiceError("Starter balances have already been cleared.");
     plan.goals = plan.goals.map(g => ({ ...g, saved: 0 }));
     plan.starterPlan = false;
   } else throw new ServiceError("Unknown planning action.");
   plan.revision++;
-  service.store.put("planning", "current", plan);
+  const description = body.action === "budget" ? `Monthly ${CATEGORIES[body.category as keyof typeof CATEGORIES]} budget set to ${inr(body.limit)}.` : body.action === "rebalance" ? `Shifted ${inr(body.amount)} from ${CATEGORIES[body.fromCategory as keyof typeof CATEGORIES]} to ${CATEGORIES[body.toCategory as keyof typeof CATEGORIES]}.` : body.action === "profile" ? `Profile preferences saved: ${plan.profile.savingsTargetPct}% savings target, ${plan.profile.defaultSpendPeriod} Spend Mix, ${plan.profile.renewalLeadDays}-day renewal notice.` : body.action === "daily-lock" ? `Daily advisory spending limit set to ${inr(plan.profile.dailySpendLimit!)}.` : `Goal plan updated (${body.action})${body.amount ? `: ${inr(body.amount)} allocated` : ""}.`;
+  const rule: PreferenceRule = { id: `planning:${body.action}:${body.category ?? body.id ?? "current"}`, kind: body.action === "budget" || body.action === "rebalance" ? "budget" : body.action === "profile" || body.action === "daily-lock" ? "profile" : "goal", description, updatedAt: new Date().toISOString() };
+  service.store.atomic(() => { service.store.put("planning", "current", plan); rebuildMemory(service, plan, rule); });
   service.events.emit("changed");
   return service.state();
 }
@@ -88,8 +121,11 @@ export function liveConfig(service: LedgerService) {
 export function addLiveTransaction(service: LedgerService, input: unknown, source: "phone" | "n8n") {
   requireReady(service);
   const body = object(input);
-  const requestId = text(body.requestId, "Request ID", 100);
+  const requestId = text(body.requestId ?? body.id, "Request ID", 100);
   if (!/^[a-zA-Z0-9_-]+$/.test(requestId)) throw new ServiceError("Request ID may contain letters, numbers, underscores and hyphens.");
+  const explicitId = body.id === undefined ? null : text(body.id, "Transaction ID", 100);
+  if (explicitId && !/^[a-zA-Z0-9_-]+$/.test(explicitId)) throw new ServiceError("Invalid transaction ID.");
+  if (explicitId && service.snapshot?.transactions.some(t => t.id === explicitId)) throw new ServiceError("This ID belongs to an imported bank transaction.", 409);
   const merchant = text(body.merchant, "Merchant", 120);
   const amount = money(body.amount, "Transaction amount");
   if (!["credit", "debit"].includes(body.direction)) throw new ServiceError("Choose income credit or expense debit.");
@@ -103,8 +139,18 @@ export function addLiveTransaction(service: LedgerService, input: unknown, sourc
   const fingerprint = createHash("sha256").update(JSON.stringify([merchant, amount, body.direction, body.rail, body.category, body.accountId, date, body.goalId ?? null])).digest("hex");
   const prior = service.store.get<{ fingerprint: string; transaction: Transaction }>("live-request", requestId);
   if (prior) {
+    if (explicitId && prior.transaction.id !== explicitId) throw new ServiceError("Request ID belongs to another transaction ID.", 409);
     if (prior.fingerprint !== fingerprint) throw new ServiceError("This request ID was already used for a different transaction.", 409);
     return { id: prior.transaction.id, duplicate: true, date, merchant, amount };
+  }
+  if (explicitId) {
+    const existing = service.store.get<Transaction>("live-transaction", explicitId);
+    if (existing) {
+      const original = service.store.get<{ fingerprint: string }>("live-identity", explicitId);
+      if (!original || original.fingerprint !== fingerprint) throw new ServiceError("This transaction ID was already used for a different transaction.", 409);
+      service.store.put("live-request", requestId, { fingerprint, transaction: existing });
+      return { id: existing.id, duplicate: true, date, merchant, amount };
+    }
   }
   const plan = structuredClone(getPlanning(service));
   if (body.goalId) {
@@ -114,9 +160,12 @@ export function addLiveTransaction(service: LedgerService, input: unknown, sourc
     goal.saved = Math.round((goal.saved + amount) * 100) / 100;
     plan.revision++;
   }
-  const id = `live_${randomUUID()}`;
+  const id = explicitId ?? `live_${randomUUID()}`;
   const now = Date.now();
+  const override = service.store.memory()?.preferenceRules.find(r => r.kind === "category" && r.merchant === merchantKey(merchant));
+  const appliedCategory = body.direction === "debit" && body.category !== "internal_transfer" && override?.category ? override.category : body.category;
   const tx: Transaction = {
+    requestId, ...(body.goalId ? { goalId: body.goalId } : {}),
     id, date, amount, signedPaise: Math.round(amount * 100) * (body.direction === "credit" ? 1 : -1), type: body.direction,
     accountId: String(account.id), accountNumber: String(account.account_last4 ?? ""), bankName: String(account.bank ?? "Bank"),
     rail: body.rail, categoryId: body.category, category: CATEGORIES[body.category], subCategory: body.goalId ? "Goal contribution" : "Live submission",
@@ -131,10 +180,24 @@ export function addLiveTransaction(service: LedgerService, input: unknown, sourc
       { stage: "Final decision", status: "passed", reason: "Saved to live ledger alongside imported statements.", confidence: 100 },
     ],
   };
+  if (appliedCategory !== body.category) {
+    tx.categoryId = appliedCategory; tx.category = CATEGORIES[appliedCategory as keyof typeof CATEGORIES];
+    tx.recurring = tx.isRecurring = appliedCategory === "software";
+    tx.citation = { type: "historical_pattern", explanation: `Applied your saved merchant preference: ${tx.category}.`, confidence: 100 };
+    tx.trace!.splice(2, 0, { stage: "Learned preference", status: "passed", reason: tx.citation.explanation });
+  }
+  const learning = prepareLearning(service, plan, tx);
+  tx.agentMetadata = localAgentMetadata(tx, learning.update, learning.snapshot);
+  learning.update.agentMetadata = tx.agentMetadata;
+  tx.trace = livePipelineTrace(tx, learning.update, learning.snapshot);
   service.store.atomic(() => {
-    service.store.put("live-transaction", id, tx);
+    service.store.upsertLiveTransaction(tx);
+    service.store.put("live-identity", id, { fingerprint });
     service.store.put("live-request", requestId, { fingerprint, transaction: tx });
     if (body.goalId) service.store.put("planning", "current", plan);
+    service.store.saveMemory(learning.memory);
+    service.store.put("learning-context", id, learning.snapshot);
+    service.store.put("learning-update", id, learning.update);
   });
   service.events.emit("changed");
   return { id, duplicate: false, date, merchant, amount };

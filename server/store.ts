@@ -2,6 +2,8 @@
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import type { AgentMemory } from "../shared/memory.ts";
+import type { Transaction } from "../src/types/finance.ts";
 
 export class Store {
   db: DatabaseSync;
@@ -15,6 +17,13 @@ export class Store {
   }
   setTeam(team: string) {
     this.team = team;
+  }
+  memory(): AgentMemory | null { return this.get<AgentMemory>("agent_memory", "current"); }
+  saveMemory(memory: AgentMemory) { this.put("agent_memory", "current", memory); }
+  upsertLiveTransaction(tx: Transaction) {
+    const previous = this.get<Transaction>("live-transaction", tx.id);
+    if (previous && ["amount", "date", "type", "accountId", "signedPaise"].some(key => previous[key as keyof Transaction] !== tx[key as keyof Transaction])) throw new Error("Transaction ID conflicts with an existing financial record.");
+    this.put("live-transaction", tx.id, tx);
   }
   get<T>(kind: string, id: string): T | null {
     const row = this.db

@@ -2,9 +2,10 @@
 import express from "express";
 import { LedgerService, ServiceError } from "./service.ts";
 import { requireAuth, type VerifyToken } from "./auth.ts";
-import { addLiveTransaction, liveConfig, updatePlanning, financialCoach } from "./personalFinance.ts";
+import { liveConfig, updatePlanning, financialCoach } from "./personalFinance.ts";
 export function createApp(service: LedgerService, publicBaseUrl?: string, verifyToken?: VerifyToken) {
-  const publicUrl = publicBaseUrl ? new URL(publicBaseUrl) : null;
+  const configuredBase = publicBaseUrl || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : undefined);
+  const publicUrl = configuredBase ? new URL(configuredBase) : null;
   const publicHost = publicUrl?.protocol === "https:" ? publicUrl.hostname : null;
   const app = express();
   app.disable("x-powered-by");
@@ -45,8 +46,8 @@ export function createApp(service: LedgerService, publicBaseUrl?: string, verify
     const rate = intakeRates.get(key) ?? { until: now + 60000, count: 0 };
     intakeRates.set(key, rate);
     if (++rate.count > 60) { res.setHeader("Retry-After", "60"); throw new ServiceError("Please wait a minute before sending more transactions.", 429); }
-    const result = addLiveTransaction(service, req.body?.transaction ?? req.body, source);
-    res.status(result.duplicate ? 200 : 201).json(result);
+    const result = service.ingestLive(req.body, source);
+    res.status(result.duplicate || "status" in result ? 200 : 201).json(result);
   });
   app.post("/api/live-transaction", intake("phone"));
   app.post("/api/webhook/n8n", intake("n8n"));
@@ -65,10 +66,31 @@ export function createApp(service: LedgerService, publicBaseUrl?: string, verify
   if (verifyToken) {
     const guard = requireAuth(verifyToken);
     app.use("/api", (req, res, next) => {
+      if (req.path === "/live-transaction" || req.path === "/live-stream" || req.path === "/webhook/n8n" || req.path === "/transactions" || req.path === "/bootstrap") return next();
       if (req.method === "GET" && /^\/share\/[^/]+$/.test(req.path)) return next();
       guard(req, res, next);
     });
   }
+  // Full financial memory is streamed only after the same authentication guard as /state.
+  app.get("/api/live-stream", (_req, res) => {
+    if (service.events.listenerCount("changed") >= 100) { res.status(503).json({ error: "Connection limit reached." }); return; }
+    const team = service.store.team;
+    res.set({ "Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform", Connection: "keep-alive", "X-Accel-Buffering": "no" });
+    res.flushHeaders();
+    const changed = () => {
+      if (team !== service.store.team) { res.end(); return; }
+      const state = service.state();
+      const transaction = state.transactions.find(t => t.id === state.memory?.learningUpdates[0]?.transactionId);
+      // This is the complete post-upsert state. It is emitted for both the immediate write and later n8n enrichment.
+      res.write(`event: update\ndata: ${JSON.stringify({ transaction, memory: state.memory, state })}\n\n`);
+    };
+    changed();
+    service.events.on("changed", changed);
+    const timer = setInterval(() => res.write(": heartbeat\n\n"), 20000); timer.unref();
+    // Rotate connections so reconnecting clients revalidate their auth token.
+    const expiry = setTimeout(() => res.end(), 60000); expiry.unref();
+    res.on("close", () => { clearInterval(timer); clearTimeout(expiry); service.events.off("changed", changed); });
+  });
   app.post("/api/planning", route((req, res) => res.json(updatePlanning(service, req.body))));
   let coachPending: ReturnType<typeof financialCoach> | null = null;
   app.post("/api/planning/coach", route(async (_req, res) => {
@@ -76,6 +98,9 @@ export function createApp(service: LedgerService, publicBaseUrl?: string, verify
     res.json(await coachPending);
   }));
   app.get("/api/state", (_req, res) => res.json(service.state()));
+  // Authenticated lightweight reconciliation endpoint. The client compares IDs/counts before merging it.
+  app.get("/api/transactions", (_req, res) => res.json(service.state()));
+  app.get("/api/bootstrap", (_req, res) => res.json(service.state()));
   app.post("/api/sync", (_req, res) => {
     void service.sync();
     res.status(202).json(service.state());

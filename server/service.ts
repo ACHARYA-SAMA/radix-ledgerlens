@@ -20,13 +20,32 @@ import { analyticsAnswer } from "./analyticsAnswers.ts";
 import type { AppState, Transaction, VoiceNote } from "../src/types/finance.ts";
 import { ServiceError } from "./errors.ts";
 export { ServiceError } from "./errors.ts";
-import { getPlanning } from "./personalFinance.ts";
+import { getPlanning, addLiveTransaction } from "./personalFinance.ts";
 import { planningMetrics, inr } from "../shared/planning.ts";
+import { rebuildMemory, enrichLearning, receiveLearningCallback } from "./memory.ts";
+import { normalizeLiveInput, unpackAgentEnvelope, validateAgentMetadata } from "./agentPipeline.ts";
+import { adaptiveMetrics, merchantKey } from "../shared/memory.ts";
 type Snapshot = ReturnType<typeof buildDataset> & {
   syncedAt: string;
   warnings: string[];
 };
 export class LedgerService {
+  static readonly n8nProductionWebhook = "https://rish011.app.n8n.cloud/webhook/transaction-ingest";
+  static readonly n8nTestWebhook = "https://rish011.app.n8n.cloud/webhook-test/transaction-ingest";
+  get n8nWebhookUrl() { return process.env.N8N_INBOUND_WEBHOOK_URL?.trim() || LedgerService.n8nProductionWebhook; }
+  /** Local learning commits synchronously. Cloud delivery enriches the same ID asynchronously. */
+  ingestLive(input: unknown, source: "phone" | "n8n") {
+    const { envelope, id, metadata } = unpackAgentEnvelope(input);
+    const callback = source === "n8n" && (metadata !== undefined || envelope.learningUpdate !== undefined);
+    if (metadata !== undefined) validateAgentMetadata(metadata);
+    if (callback && typeof id === "string" && this.store.get<Transaction>("live-transaction", id)) return receiveLearningCallback(this, input);
+    if (callback && envelope.learningUpdate && !metadata) return receiveLearningCallback(this, input);
+    const result = addLiveTransaction(this, normalizeLiveInput(input), source);
+    if (callback) receiveLearningCallback(this, input);
+    // Callbacks never forward back into n8n. Repeated mobile requests never resend or reinsert.
+    if (!result.duplicate && source === "phone") void enrichLearning(this, result.id, source).catch(() => { /* Persisted local metadata is already complete. */ });
+    return result;
+  }
   events = new EventEmitter().setMaxListeners(100);
   store: Store;
   nova: NovaClient;
@@ -61,6 +80,8 @@ export class LedgerService {
     const snapshot = this.snapshot;
     const live = this.store.all<Transaction>("live-transaction").reverse();
     const transactions = [...live, ...(snapshot?.transactions ?? [])];
+    const plan = getPlanning(this);
+    const memory = this.store.memory() ?? (snapshot && this.ready ? rebuildMemory(this, plan) : null);
     const analytics = live.length ? analyze(transactions, this.sources["bank-accounts"] ?? []) : snapshot?.analytics ?? analyze([], []);
     if (live.length && snapshot) {
       // Source closing balances stay authoritative; apply the separate demo ledger as an overlay.
@@ -70,7 +91,8 @@ export class LedgerService {
     }
     return {
       transactions,
-      planning: getPlanning(this),
+      planning: plan,
+      memory: memory ?? undefined,
       importedTransactionCount: snapshot?.transactions.length ?? 0,
       liveTransactionCount: live.length,
       bankAccounts: (this.sources["bank-accounts"] ?? []).map((a) => ({
@@ -281,6 +303,8 @@ export class LedgerService {
       });
       this.sources = sources;
       this.snapshot = snapshot;
+      rebuildMemory(this, getPlanning(this));
+      this.events.emit("changed");
       this.syncStatus = {
         running: false,
         message: `Synced ${result.transactions.length} transactions`,
@@ -382,8 +406,10 @@ export class LedgerService {
       reason: tx.citation.explanation,
     });
     finalizeTrace(tx);
+    const preference = ["correct", "personal"].includes(action) && category !== "internal_transfer" && tx.type === "debit" ? { id: `merchant:${merchantKey(tx.counterpartyText || tx.vendorClientName)}`, kind: "category" as const, merchant: merchantKey(tx.counterpartyText || tx.vendorClientName), category, description: `For ${tx.vendorClientName}, use ${CATEGORIES[category]} on future live expenses.`, updatedAt: new Date().toISOString() } : undefined;
     if (tx.origin) {
       this.store.put("live-transaction", tx.id, tx);
+      rebuildMemory(this, getPlanning(this), preference);
       this.events.emit("changed");
       return this.state();
     }
@@ -392,6 +418,8 @@ export class LedgerService {
       this.sources["bank-accounts"] ?? [],
     );
     this.save();
+    rebuildMemory(this, getPlanning(this), preference);
+    this.events.emit("changed");
     return this.state();
   }
   acknowledge(id: string, status: string) {
@@ -556,6 +584,14 @@ export class LedgerService {
     const planning = s.planning && s.dataDate ? planningMetrics(s.transactions, s.planning, s.dataDate) : null;
     if (!s.syncedAt)
       answer = "No completed Account Aggregator (AA) Bank Sync import is available yet. Sync the bank feed first.";
+    else if (s.memory && /learn|habit|memory|rebalance|forecast|goal delay|timeline/.test(q)) {
+      const adaptive = adaptiveMetrics(s.transactions, s.planning!, s.dataDate!);
+      const latest = s.memory.learningUpdates[0];
+      if (/rebalance/.test(q)) answer = adaptive.rebalances.length ? adaptive.rebalances.map(r => `Consider moving ${inr(r.suggestedAmount)} from ${CATEGORIES[r.fromCategory]} to ${CATEGORIES[r.toCategory]}. Apply it in Goals and Budgets.`).join(" ") : "There is no safe flexible-budget surplus to rebalance at the current pace.";
+      else if (/goal|timeline/.test(q)) answer = adaptive.topGoal ? `${adaptive.topGoal.name}: estimated completion ${adaptive.topGoal.projectedCompletionDate ?? "unavailable until positive net savings are recorded"}. ${latest?.goalImpact?.days != null ? `The latest entry ${latest.goalImpact.direction} this plan by an estimated ${latest.goalImpact.days} days.` : ""} Dates assume the historical savings pace continues.` : "No active savings goal remains.";
+      else if (/forecast/.test(q)) answer = adaptive.budgets.map(b => `${b.name}: ${inr(b.dailyBurnRate)} daily burn, ${inr(b.projectedMonthEndSpend)} estimated month-end spending.`).join(" ") + " Estimates assume the current pace continues.";
+      else answer = (latest ? latest.observedPattern + " " : "") + s.memory.learnedTraits.slice(0, 3).map(t => t.text).join(" ");
+    }
     else if (planning && /\bbudget|\bgoal|safe.to.spend|saving|financial summary|financial health/.test(q)) {
       if (/goal/.test(q)) answer = planning.goals.map(g => `${g.name} is ${g.percent.toFixed(0)}% complete. Save ${inr(g.monthlyNeeded)} per month toward ${inr(g.target)} by ${g.targetDate}.`).join(" ") + (s.planning!.starterPlan ? " These goals include illustrative starter balances." : "");
       else if (/budget/.test(q)) answer = planning.budgets.map(b => `${b.name}: ${inr(b.spent)} spent of ${inr(b.limit)} budget${b.percent >= 100 ? ", over budget" : ""}.`).join(" ");

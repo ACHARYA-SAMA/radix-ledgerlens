@@ -4,6 +4,9 @@ import type { AnalyticsSummary } from "../types/finance";
 import { formatDateIndian, formatINR } from "../utils/formatters";
 import { CashTrendChart, PatternBars, SpendDonut } from "./FinancialCharts";
 import { HeroBipartiteHeader } from "./HeroBipartiteHeader";
+import { useEffect, useMemo, useState } from "react";
+import type { Transaction } from "../types/finance.ts";
+import { spendMix, type SpendPeriod } from "../../shared/memory.ts";
 
 const card = "min-w-0 rounded-2xl border border-white/[0.12] bg-[linear-gradient(155deg,#171e23_0%,#0b1014_72%)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.08),0_16px_34px_rgba(0,0,0,.2)] sm:p-6";
 const label = "font-mono text-[10px] uppercase tracking-[0.22em] text-slate-400";
@@ -18,9 +21,12 @@ function FlowRail({ title, value, max, color }: { title: string; value: number; 
   </div>;
 }
 
-export function InsightsPanel({ analytics: a, insights }: { analytics: AnalyticsSummary; insights: string[] }) {
+export function InsightsPanel({ analytics: a, insights, transactions, asOf, defaultPeriod = "monthly" }: { analytics: AnalyticsSummary; insights: string[]; transactions: Transaction[]; asOf: string | null; defaultPeriod?: SpendPeriod }) {
+  const [period, setPeriod] = useState<SpendPeriod>(defaultPeriod);
+  useEffect(() => setPeriod(defaultPeriod), [defaultPeriod]);
+  const mix = useMemo(() => asOf ? spendMix(transactions, asOf, period) : null, [transactions, asOf, period]);
   const timeline = a.cashTimeline ?? [];
-  const categories = (a.categoryTotals ?? []).map(item => ({ name: item.category, value: item.amount }));
+  const categories = mix?.items ?? [];
   const patterns = [
     { name: "Internal transfers", value: a.transferCount ?? 0, color: "#91b9ee" },
     { name: "Recurring lines", value: a.recurringCount ?? 0, color: "#8bd8c1" },
@@ -56,9 +62,9 @@ export function InsightsPanel({ analytics: a, insights }: { analytics: Analytics
         </article>
 
         <article className={`${card} lg:col-span-4`}>
-          <div><p className={label}>Spend mix</p><h3 className="ledger-display mt-1 text-lg font-semibold text-white">Latest month by category</h3></div>
+          <div className="spend-mix-heading"><div><p className={label}>Spend mix</p><h3 className="ledger-display mt-1 text-lg font-semibold text-white">{period === "weekly" ? "Last 7 days" : period === "yearly" ? "Year to date" : "Month to date"} by category</h3></div><label className="spend-period-label"><span className="sr-only">Spend Mix period</span><select aria-label="Spend Mix period" value={period} onChange={e => setPeriod(e.target.value as SpendPeriod)}><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></label></div>
           <div className="mt-2"><SpendDonut items={categories} totalLabel="Category spend" compactView/></div>
-          <p className="mt-3 border-t border-white/10 pt-3 text-[11px] text-slate-500">Shares of recorded category spend · hover the ring for amounts</p>
+          <p className="mt-3 border-t border-white/10 pt-3 text-[11px] text-slate-500">{mix ? `${formatDateIndian(mix.start)} – ${formatDateIndian(mix.end)}` : "Awaiting bank data"} · Expenses only, excluding internal transfers</p>
         </article>
 
         <article className={`${card} lg:col-span-3`}>

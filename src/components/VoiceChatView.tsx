@@ -33,6 +33,10 @@ const PRESET_QUERIES = [
   "What are my budgets?",
   "How much is safe to spend?",
   "How are my savings goals progressing?",
+  "What have you learned about my spending habits?",
+  "What is my budget forecast?",
+  "Can I rebalance my budgets?",
+  "What is my goal timeline?",
 ];
 
 export const VoiceChatView: React.FC<VoiceChatViewProps> = ({ transactions }) => {

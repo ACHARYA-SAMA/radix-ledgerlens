@@ -27,8 +27,10 @@ import { ProfilePreferences } from "./components/ProfilePreferences.tsx";
 import { PhoneRemote } from "./components/PhoneRemote.tsx";
 import { isMobileRoute } from "./lib/publicRoute.ts";
 import { displayText } from "../shared/branding.ts";
-import { planningAlerts, inr } from "../shared/planning.ts";
+import { planningAlerts, inr, inQuietHours } from "../shared/planning.ts";
 import { requestVoiceAudio, playVoiceAudio } from "./lib/voiceAudio.ts";
+import { streamMemory } from "./lib/memoryStream.ts";
+import { authHeaders } from "./lib/supabase.ts";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
@@ -51,20 +53,32 @@ export default function App() {
   const [selectedTraceTxId, setSelectedTraceTxId] = useState("");
   const publicToken = window.location.pathname.match(/^\/share\/([^/]+)$/)?.[1];
   const mobile = isMobileRoute();
+  const liveFirst = (previous: AppState | null, next: AppState): AppState => {
+    const byId = new Map<string, Transaction>();
+    // Incoming data is authoritative, including n8n's later enrichment of an existing row.
+    for (const tx of next.transactions) byId.set(tx.id, tx);
+    const live = [...byId.values()]
+      .filter(tx => tx.origin)
+      .sort((a, b) => String(b.receivedAt ?? "").localeCompare(String(a.receivedAt ?? "")) || b.id.localeCompare(a.id));
+    const imported = [...byId.values()].filter(tx => !tx.origin);
+    return { ...next, transactions: [...live, ...imported] };
+  };
   const acceptState = useCallback((next: AppState) => {
     const previous = stateRef.current;
-    stateRef.current = next;
-    setState(next);
+    const merged = liveFirst(previous, next);
+    stateRef.current = merged;
+    setState(merged);
     if (!previous) return;
     const known = new Set(previous.transactions.map(tx => tx.id));
-    const incoming = next.transactions.filter(tx => tx.origin && !known.has(tx.id));
+    const incoming = merged.transactions.filter(tx => tx.origin && !known.has(tx.id));
     if (!incoming.length) return;
-    sound.playPluck(0.7, 0.25);
-    const received = incoming.slice(0, 2).map(tx => ({ id: tx.id, title: "📱 Live Transaction Received", detail: `${displayText(tx.vendorClientName)} · ${inr(tx.amount)} ${tx.type === "credit" ? "received" : "spent"}` }));
+    if (merged.planning && inQuietHours(merged.planning.profile)) return;
+    const received = merged.planning?.profile.liveNotifications === false ? [] : incoming.slice(0, 2).map(tx => ({ id: tx.id, title: "📱 Live Transaction Received", detail: `${displayText(tx.vendorClientName)} · ${inr(tx.amount)} ${tx.type === "credit" ? "received" : "spent"}` }));
     const oldAlerts = new Set(previous.planning && previous.dataDate ? planningAlerts(previous.transactions, previous.planning, previous.dataDate, previous.subscriptions).map(a => a.id) : []);
-    const newAlerts = next.planning && next.dataDate ? planningAlerts(next.transactions, next.planning, next.dataDate, next.subscriptions).filter(a => !oldAlerts.has(a.id)) : [];
+    const newAlerts = merged.planning && merged.dataDate ? planningAlerts(merged.transactions, merged.planning, merged.dataDate, merged.subscriptions).filter(a => !oldAlerts.has(a.id)) : [];
+    if (received.length || newAlerts.length) sound.playPluck(0.7, 0.25);
     setToasts(current => [...current, ...received, ...newAlerts.slice(0, 2)].slice(-4));
-    if (next.planning?.profile.voiceAlerts && newAlerts.length && !sound.getMuted()) {
+    if (merged.planning?.profile.voiceAlerts && newAlerts.length && !sound.getMuted()) {
       alertAudio.current?.abort();
       const controller = new AbortController(); alertAudio.current = controller;
       void requestVoiceAudio(displayText(`${newAlerts[0].title}. ${newAlerts[0].detail}`), controller.signal).then(url => playVoiceAudio(url, controller.signal)).catch(() => { /* Visual alerts remain available if speech is unavailable. */ });
@@ -87,12 +101,33 @@ export default function App() {
   useEffect(() => {
     if (publicToken || mobile) return;
     void refresh();
-    const timer = setInterval(() => void refresh(), 3000);
-    const stream = new EventSource("/api/live-events");
-    stream.addEventListener("ready", () => { setLiveConnected(true); void refresh(); });
-    stream.addEventListener("changed", () => void refresh());
-    stream.onerror = () => setLiveConnected(false);
-    return () => { clearInterval(timer); stream.close(); alertAudio.current?.abort(); };
+    const timer = setInterval(async () => {
+      try {
+        const next = await api<AppState>("/transactions");
+        const current = stateRef.current;
+        const currentIds = new Set(current?.transactions.map(tx => tx.id) ?? []);
+        const nextIds = new Set(next.transactions.map(tx => tx.id));
+        const idsChanged = currentIds.size !== nextIds.size || [...nextIds].some(id => !currentIds.has(id));
+        const memoryChanged = (next.memory?.revision ?? 0) > (current?.memory?.revision ?? 0);
+        if (idsChanged || memoryChanged) acceptState(next);
+      } catch { /* The regular state refresh and SSE reconnect paths remain available. */ }
+    }, 2000);
+    const controller = new AbortController();
+    let retry: ReturnType<typeof setTimeout>;
+    const connect = async () => {
+      try {
+        await streamMemory(await authHeaders(), controller.signal, next => {
+          setLiveConnected(true);
+          const current = stateRef.current;
+          if ((next.memory?.revision ?? 0) < (current?.memory?.revision ?? 0)) return;
+          requestVersion.current++;
+          acceptState(next);
+        });
+      } catch { /* The existing polling path refreshes auth and state if streaming is unavailable. */ }
+      if (!controller.signal.aborted) { setLiveConnected(false); retry = setTimeout(() => void connect(), 2000); }
+    };
+    void connect();
+    return () => { clearInterval(timer); clearTimeout(retry); controller.abort(); alertAudio.current?.abort(); };
   }, [refresh, publicToken, mobile]);
   useEffect(() => { if (!toasts.length) return; const timer = setTimeout(() => setToasts(current => current.slice(1)), 10000); return () => clearTimeout(timer); }, [toasts]);
   const mutate = async (path: string, body: unknown) => {
@@ -210,7 +245,7 @@ export default function App() {
               className="flex flex-col w-full"
             >
               {/* Live statement overview leads immediately into the ledger. */}
-              <InsightsPanel analytics={analytics} insights={state.insights} />
+              <InsightsPanel analytics={analytics} insights={state.insights} transactions={transactions} asOf={state.dataDate} defaultPeriod={state.planning?.profile.defaultSpendPeriod} />
               <DashboardView
                 transactions={transactions}
                 onSelectTransactionForTrace={handleSelectTransactionForTrace}
@@ -269,6 +304,7 @@ export default function App() {
             >
               <DecisionTraceView
                 transactions={transactions}
+                memory={state.memory}
                 initialTransactionId={selectedTraceTxId}
               />
             </motion.div>

@@ -48,7 +48,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   // Filter & sort logic
   const filteredTransactions = useMemo(() => {
-    return transactions
+    const live = transactions.filter(tx => Boolean(tx.origin || tx.id.startsWith("tx_") || tx.agentMetadata));
+    const historical = transactions.filter(tx => !Boolean(tx.origin || tx.id.startsWith("tx_") || tx.agentMetadata));
+    const filtered = historical
       .filter((tx) => {
         if (selectedRail !== "ALL" && tx.rail !== selectedRail) return false;
         if (selectedAccount !== "ALL" && tx.accountId !== selectedAccount)
@@ -85,6 +87,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         if (valA > valB) return sortAsc ? 1 : -1;
         return 0;
       });
+    return [...live, ...filtered];
   }, [
     transactions,
     selectedRail,

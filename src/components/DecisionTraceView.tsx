@@ -35,8 +35,11 @@ import { Transaction } from "../types/finance";
 import { AirBubbleBox } from "./AirBubbleBox";
 import { authHeaders } from "../lib/supabase";
 import { streamTrace } from "../lib/traceStream";
+import type { AgentMemory } from "../../shared/memory.ts";
+import { LearningDetail } from "./AdaptiveMemory.tsx";
 
 interface DecisionTraceViewProps {
+  memory?: AgentMemory;
   transactions?: Transaction[];
   initialTransactionId?: string;
 }
@@ -44,6 +47,7 @@ interface DecisionTraceViewProps {
 const TraceGraph: React.FC<DecisionTraceViewProps> = ({
   transactions = [],
   initialTransactionId,
+  memory,
 }) => {
   const [selectedScenarioId, setSelectedScenarioId] = useState(
     initialTransactionId || transactions[0].id,
@@ -99,7 +103,7 @@ const TraceGraph: React.FC<DecisionTraceViewProps> = ({
     return {
       id: tx.id,
       title: tx.vendorClientName,
-      subtitle: "Replay of saved processing events",
+      subtitle: tx.origin ? "Six stages of the n8n-compatible pipeline; each step identifies its execution source" : "Replay of saved processing events",
       badge: "RECORDED TRACE",
       badgeColor: "",
       rawNarration: tx.rawNarration,
@@ -231,6 +235,7 @@ const TraceGraph: React.FC<DecisionTraceViewProps> = ({
           </div>
         </div>
 
+        {memory?.learningUpdates.find(u => u.transactionId === tx.id) && <section className="finance-shell finance-card"><h2>What the agent learned</h2><LearningDetail learning={memory.learningUpdates.find(u => u.transactionId === tx.id)!} /></section>}
         {/* Active Transaction Context Bar */}
         <motion.div
           layout

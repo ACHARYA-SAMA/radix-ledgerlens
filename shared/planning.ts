@@ -12,10 +12,25 @@ export interface FinancialProfile {
   renewalReminders: boolean;
   voiceAlerts: boolean;
   spendingAlerts: boolean;
+  defaultSpendPeriod?: "weekly" | "monthly" | "yearly";
+  priorityGoalId?: string;
+  renewalLeadDays?: number;
+  liveNotifications?: boolean;
+  quietHoursEnabled?: boolean;
+  quietHoursStart?: string;
+  quietHoursEnd?: string;
+  dailySpendLimit?: number | null;
 }
 export interface Goal { id: string; name: string; target: number; saved: number; targetDate: string; color: string }
 export interface Budget { category: Category; limit: number }
-export interface PlanningState { profile: FinancialProfile; goals: Goal[]; budgets: Budget[]; starterPlan: boolean; revision: number }
+export interface PlanningState { profile: FinancialProfile; goals: Goal[]; budgets: Budget[]; starterPlan: boolean; revision: number; allocationsByMonth?: Record<string, number> }
+export const preferenceDefaults = { defaultSpendPeriod: "monthly" as const, priorityGoalId: "", renewalLeadDays: 7, liveNotifications: true, quietHoursEnabled: false, quietHoursStart: "22:00", quietHoursEnd: "08:00", dailySpendLimit: null };
+export function inQuietHours(profile: FinancialProfile, now = new Date()) {
+  if (!profile.quietHoursEnabled) return false;
+  const time = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(now);
+  const start = profile.quietHoursStart ?? "22:00", end = profile.quietHoursEnd ?? "08:00";
+  return start === end ? false : start < end ? time >= start && time < end : time >= start || time < end;
+}
 export interface CoachReport { source: "Gemini" | "Built-in analysis"; generatedAt: string; asOf: string; summary: string; recommendations: string[]; warning?: string }
 export interface SpendingAlert { id: string; title: string; detail: string; severity: "warning" | "critical" | "info" }
 export const rupees = (paise: number) => Math.round(paise) / 100;
@@ -59,7 +74,9 @@ export function planningMetrics(rows: Transaction[], plan: PlanningState, asOf: 
   const remainingDays = Math.max(1, monthDays - days + 1);
   const savingsTarget = plan.profile.monthlyIncomeTarget * plan.profile.savingsTargetPct / 100;
   const spendCapacity = Math.min(month.income, plan.profile.monthlyIncomeTarget);
-  const safeToSpend = Math.max(0, (spendCapacity - month.expense - savingsTarget) / remainingDays);
+  const dailySpent = total(asOf, asOf).expense;
+  const dailyLimitRemaining = plan.profile.dailySpendLimit == null ? null : Math.max(0, plan.profile.dailySpendLimit - dailySpent);
+  const safeToSpend = Math.min(Math.max(0, (spendCapacity - month.expense - savingsTarget - (plan.allocationsByMonth?.[asOf.slice(0, 7)] ?? 0)) / remainingDays), dailyLimitRemaining ?? Infinity);
   const savingsRate = month.income > 0 ? month.savings / month.income * 100 : 0;
   const budgets = plan.budgets.map(budget => {
     const spent = rupees(eligible.filter(tx => tx.date >= monthStart && tx.date <= asOf && tx.type === "debit" && (tx.categoryId === budget.category || (!tx.categoryId && tx.category === CATEGORIES[budget.category]))).reduce((sum, tx) => sum + Math.abs(signedPaise(tx)), 0));
@@ -88,6 +105,10 @@ export function planningAlerts(rows: Transaction[], plan: PlanningState, asOf: s
   const m = planningMetrics(rows, plan, asOf);
   const alerts: SpendingAlert[] = [];
   if (plan.profile.spendingAlerts) {
+    if (plan.profile.dailySpendLimit != null) {
+      const spent = eligibleDailySpend(rows, asOf);
+      if (spent > plan.profile.dailySpendLimit) alerts.push({ id: `daily:${asOf}`, title: "Daily planning limit exceeded", detail: `${inr(spent)} spent today against your ${inr(plan.profile.dailySpendLimit)} advisory limit.`, severity: "warning" });
+    }
     for (const b of m.budgets) {
       const threshold = [...plan.profile.alertThresholds].sort((a, b) => b - a).find(t => b.percent >= t);
       if (threshold !== undefined) alerts.push({ id: `budget:${asOf.slice(0, 7)}:${b.category}:${threshold}`, title: b.percent >= 100 ? "Overspending detected" : "Budget approaching limit", detail: `${b.name}: ${inr(b.spent)} of ${inr(b.limit)} (${b.percent.toFixed(0)}%).`, severity: b.percent >= 100 ? "critical" : "warning" });
@@ -105,7 +126,8 @@ export function planningAlerts(rows: Transaction[], plan: PlanningState, asOf: s
       date.setUTCDate(Math.min(originalDay, last));
     }
     const renewal = date.toISOString().slice(0, 10);
-    if (renewal >= asOf && renewal <= shiftDays(asOf, 7)) alerts.push({ id: `renewal:${sub.id}:${renewal}`, title: "Subscription renewal", detail: `${sub.name}: ${inr(sub.currentAmount)} expected ${renewal}.`, severity: "info" });
+    if (renewal >= asOf && renewal <= shiftDays(asOf, plan.profile.renewalLeadDays ?? 7)) alerts.push({ id: `renewal:${sub.id}:${renewal}`, title: "Subscription renewal", detail: `${sub.name}: ${inr(sub.currentAmount)} expected ${renewal}.`, severity: "info" });
   }
   return alerts;
 }
+const eligibleDailySpend = (rows: Transaction[], date: string) => rows.filter(t => t.date === date && !isTransfer(t) && signedPaise(t) < 0).reduce((sum, t) => sum - signedPaise(t), 0) / 100;
