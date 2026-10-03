@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { displayText } from "../../shared/branding.ts";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ComposedChart, LabelList,
   Line, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -39,7 +40,7 @@ export function CashTrendChart({ points }: { points: { date: string; balance: nu
 }
 
 export function ChartEmpty({ label }: { label: string }) {
-  return <div className="flex h-[180px] items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/[0.025] px-5 text-center text-xs text-slate-500">{label}</div>;
+  return <div className="flex h-[180px] items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/[0.025] px-5 text-center text-xs text-slate-500">{displayText(label)}</div>;
 }
 
 export function SpendDonut({ items, totalLabel = "Total spend", compactView = false }: {
@@ -62,16 +63,16 @@ export function SpendDonut({ items, totalLabel = "Total spend", compactView = fa
           {visible.map((item, index) => <Cell key={item.name} fill={chartPalette[index % chartPalette.length]} fillOpacity={activeIndex === null || activeIndex === index ? 1 : .42}/>)}
         </Pie><Tooltip contentStyle={tooltipStyle} formatter={value => [formatINR(Number(value)), "Spend"]}/></PieChart>
       </ResponsiveContainer>
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-5 text-center"><span className="max-w-full truncate font-mono text-[9px] uppercase tracking-[0.13em] text-slate-400">{active?.name ?? totalLabel}</span><span className={`mt-1 font-mono font-semibold tabular-nums text-white ${compactView ? "text-sm" : "text-lg"}`}>{compact(active?.value ?? total)}</span><span className="mt-1 font-mono text-[10px] text-slate-500">{active ? `${(active.value / total * 100).toFixed(1)}% of total` : `${visible.length} groups`}</span></div>
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-5 text-center"><span className="max-w-full truncate font-mono text-[9px] uppercase tracking-[0.13em] text-slate-400">{displayText(active?.name ?? totalLabel)}</span><span className={`mt-1 font-mono font-semibold tabular-nums text-white ${compactView ? "text-sm" : "text-lg"}`}>{compact(active?.value ?? total)}</span><span className="mt-1 font-mono text-[10px] text-slate-500">{active ? `${(active.value / total * 100).toFixed(1)}% of total` : `${visible.length} groups`}</span></div>
     </div>
-    <div className="min-w-0 space-y-2.5">{visible.map((item, index) => <button type="button" key={item.name} aria-label={`${item.name}: ${formatINR(item.value)}, ${(item.value / total * 100).toFixed(1)} percent of total`} className="group block w-full min-w-0 text-left focus-visible:rounded focus-visible:outline-2 focus-visible:outline-white" onMouseEnter={() => setActiveIndex(index)} onMouseLeave={() => setActiveIndex(null)} onFocus={() => setActiveIndex(index)} onBlur={() => setActiveIndex(null)}><div className="flex items-center justify-between gap-2 text-[11px]"><span className="flex min-w-0 items-center gap-2 text-slate-300"><span className="h-2 w-2 shrink-0 rounded-sm" style={{ backgroundColor: chartPalette[index % chartPalette.length] }}/><span className="truncate" title={item.name}>{item.name}</span></span><span className="shrink-0 font-mono tabular-nums text-slate-400">{Math.round(item.value / total * 100)}%</span></div><div className="ml-4 mt-1.5 h-[3px] overflow-hidden rounded-full bg-white/[.08]"><div className="h-full rounded-full transition-[width] duration-300" style={{ width: `${item.value / total * 100}%`, backgroundColor: chartPalette[index % chartPalette.length] }}/></div></button>)}</div>
+    <div className="min-w-0 space-y-2.5">{visible.map((item, index) => <button type="button" key={item.name} aria-label={`${displayText(item.name)}: ${formatINR(item.value)}, ${(item.value / total * 100).toFixed(1)} percent of total`} className="group block w-full min-w-0 text-left focus-visible:rounded focus-visible:outline-2 focus-visible:outline-white" onMouseEnter={() => setActiveIndex(index)} onMouseLeave={() => setActiveIndex(null)} onFocus={() => setActiveIndex(index)} onBlur={() => setActiveIndex(null)}><div className="flex items-center justify-between gap-2 text-[11px]"><span className="flex min-w-0 items-center gap-2 text-slate-300"><span className="h-2 w-2 shrink-0 rounded-sm" style={{ backgroundColor: chartPalette[index % chartPalette.length] }}/><span className="truncate" title={displayText(item.name)}>{displayText(item.name)}</span></span><span className="shrink-0 font-mono tabular-nums text-slate-400">{Math.round(item.value / total * 100)}%</span></div><div className="ml-4 mt-1.5 h-[3px] overflow-hidden rounded-full bg-white/[.08]"><div className="h-full rounded-full transition-[width] duration-300" style={{ width: `${item.value / total * 100}%`, backgroundColor: chartPalette[index % chartPalette.length] }}/></div></button>)}</div>
   </div>;
 }
 
 export function FlowBars({ data }: { data: FlowBucket[] }) {
+  const id = useId().replace(/:/g, "");
   if (!data.length) return <ChartEmpty label="No non-transfer cash movement in this selection." />;
   const chartData = data.map(period => ({ ...period, net: period.moneyIn - period.moneyOut }));
-  const id = useId().replace(/:/g, "");
   return <div className="h-[340px] w-full min-w-0" role="img" aria-label={`Money in, money out and net movement by period across ${data.length} periods`}>
     <ResponsiveContainer width="100%" height="100%"><ComposedChart data={chartData} margin={{ top: 22, right: 14, left: -12, bottom: 0 }} barGap={3}>
       <defs><linearGradient id={`flow-in-${id}`} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="var(--chart-teal-top)"/><stop offset="100%" stopColor="var(--chart-teal)"/></linearGradient><linearGradient id={`flow-out-${id}`} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="var(--chart-amber-top)"/><stop offset="100%" stopColor="var(--chart-amber)"/></linearGradient></defs>
@@ -97,7 +98,7 @@ export function CategoryBars({ items }: { items: { name: string; value: number }
       <CartesianGrid vertical={false} stroke="var(--chart-grid)" strokeDasharray="2 5"/>
       <XAxis dataKey="short" interval={0} angle={-28} textAnchor="end" height={58} tick={axisTick} tickLine={false} axisLine={false}/>
       <YAxis tick={axisTick} tickLine={false} axisLine={false} tickFormatter={compact} width={76}/>
-      <Tooltip cursor={{ fill: "var(--chart-cursor)" }} contentStyle={tooltipStyle} formatter={value => [formatINR(Number(value)), "Spend"]} labelFormatter={(_, payload) => payload?.[0]?.payload?.name ?? ""}/>
+      <Tooltip cursor={{ fill: "var(--chart-cursor)" }} contentStyle={tooltipStyle} formatter={value => [formatINR(Number(value)), "Spend"]} labelFormatter={(_, payload) => displayText(payload?.[0]?.payload?.name ?? "")}/>
       <Bar dataKey="value" maxBarSize={52} radius={[5,5,0,0]} isAnimationActive={false}>{data.map((item, index) => <Cell key={item.name} fill={chartPalette[index % chartPalette.length]}/>)}<LabelList dataKey="share" position="top" fill="var(--chart-ink)" fontSize={10} fontFamily="ui-monospace, monospace"/></Bar>
     </BarChart></ResponsiveContainer>
   </div>;
@@ -106,6 +107,6 @@ export function CategoryBars({ items }: { items: { name: string; value: number }
 export function PatternBars({ items }: { items: { name: string; value: number; color: string }[] }) {
   const max = Math.max(1, ...items.map(item => item.value));
   return <div className="space-y-5" role="img" aria-label={items.map(item => `${item.value} ${item.name}`).join(", ")}>
-    {items.map(item => <div key={item.name} className="min-w-0"><div className="flex items-baseline justify-between gap-2"><span className="text-[11px] text-slate-300">{item.name}</span><strong className="font-mono text-xl font-semibold tabular-nums text-white">{item.value.toLocaleString("en-IN")}</strong></div><div className="relative mt-2 h-2 overflow-hidden rounded-sm bg-white/[.06]"><div className="h-full transition-[width] duration-500" style={{ width: `${item.value / max * 100}%`, background: `repeating-linear-gradient(90deg,${item.color} 0 7px,transparent 7px 10px)` }}/></div></div>)}
+    {items.map(item => <div key={item.name} className="min-w-0"><div className="flex items-baseline justify-between gap-2"><span className="text-[11px] text-slate-300">{displayText(item.name)}</span><strong className="font-mono text-xl font-semibold tabular-nums text-white">{item.value.toLocaleString("en-IN")}</strong></div><div className="relative mt-2 h-2 overflow-hidden rounded-sm bg-white/[.06]"><div className="h-full transition-[width] duration-500" style={{ width: `${item.value / max * 100}%`, background: `repeating-linear-gradient(90deg,${item.color} 0 7px,transparent 7px 10px)` }}/></div></div>)}
   </div>;
 }

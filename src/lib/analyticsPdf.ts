@@ -1,12 +1,14 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { BankAccountSummary, BeneficiaryChange, SubscriptionSummary, Transaction } from "../types/finance.ts";
-import { calendarDays, duplicateGroups, isRecurring, isTransfer, signedPaise, spendingGroups, summarize } from "./analyticsMath.ts";
+import { accountClosingPaise, calendarDays, duplicateGroups, isRecurring, isTransfer, signedPaise, spendingGroups, summarize } from "./analyticsMath.ts";
 import { cashFlowBuckets, type FlowBucket } from "./chartData.ts";
+import { displayText } from "../../shared/branding.ts";
 
 type RGB = [number, number, number];
 type ReportInput = {
   rows: Transaction[];
+  allRows?: Transaction[];
   start: string;
   end: string;
   bankLabel: string;
@@ -33,7 +35,7 @@ const compactAmount = (rupees: number) => {
   if (absolute >= 1_000) return `${sign}${(absolute / 1_000).toFixed(1)}k`;
   return `${sign}${Math.round(absolute).toLocaleString("en-IN")}`;
 };
-const clean = (value: unknown) => String(value ?? "")
+const clean = (value: unknown) => displayText(String(value ?? ""))
   .replace(/₹/g, "INR ")
   .replace(/[‘’]/g, "'")
   .replace(/[“”]/g, '"')
@@ -343,6 +345,7 @@ function table(doc: jsPDF, head: string[], body: string[][], startY: number, wid
 export function buildAnalyticsPdf(input: ReportInput): jsPDF {
   const { start, end, bankLabel, bankAccounts, subscriptions, beneficiaryChanges } = input;
   const rows = [...input.rows].sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+  const allRows = input.allRows ?? rows;
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: true });
   const stats = summarize(rows);
   const fraudRows = rows.filter(tx => tx.status === "flagged_fraud");
@@ -404,11 +407,13 @@ export function buildAnalyticsPdf(input: ReportInput): jsPDF {
   doc.addPage();
   page(doc, "Account breakdown", start, end, bankLabel);
   section(doc, "Matching bank statements", 51);
-  table(doc, ["Bank / account", "Purpose", "Lines", "Money in", "Money out", "Internal transfers", "Source opening", "Latest recorded balance"],
+  table(doc, ["Bank / account", "Purpose", "Lines", "Money in", "Money out", "Internal transfers", "Source opening", "Closing / source balance"],
     bankAccounts.filter(account => rows.some(tx => tx.accountId === account.id)).map(account => {
       const accountRows = rows.filter(tx => tx.accountId === account.id);
       const stat = summarize(accountRows);
       const latest = [...accountRows].sort((a, b) => a.date.localeCompare(b.date) || (a.lineNo ?? 0) - (b.lineNo ?? 0)).at(-1);
+      const history = allRows.filter(tx => tx.accountId === account.id && tx.date <= end);
+      const hasLive = history.some(tx => tx.origin);
       return [
         `${clean(account.bank)} ${clean(account.accountLast4)}`,
         clean(account.purpose),
@@ -417,7 +422,7 @@ export function buildAnalyticsPdf(input: ReportInput): jsPDF {
         money(stat.moneyOutPaise),
         money(stat.transferPaise),
         amount(account.openingBalance),
-        latest?.runningBalance == null ? "Not supplied" : `${amount(latest.runningBalance)} (${latest.date})`,
+        hasLive ? `${money(accountClosingPaise(history, account.openingBalance))} (includes live)` : latest?.runningBalance == null ? "Not supplied" : `${amount(latest.runningBalance)} (${latest.date})`,
       ];
     }), 57);
   doc.addPage();

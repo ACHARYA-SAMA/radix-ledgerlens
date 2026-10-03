@@ -1,6 +1,6 @@
 # Radix LedgerLens
 
-Finathon FIN-19 prototype using the existing Radix UI, React/Vite, a local Express server, SQLite, Nova, and Gemini 3.8 Flash.
+Finathon FIN-19 prototype using the existing Radix UI, React/Vite, a local Express server, SQLite, Account Aggregator (AA) Bank Sync, and Gemini 3.8 Flash.
 
 ## Run locally
 
@@ -16,7 +16,7 @@ Copy `.env.example` to `.env` if `.env` does not already exist. Set `NOVA_API_KE
 npm run dev
 ```
 
-Open http://127.0.0.1:3005 and select **Sync Bank Feed**. The existing Express server runs Vite, the application API, and the voice routes together in one process. Completed imports are retained across restarts. Nova calls are GET-only, paginated, cached for the server session, and retried on supported transient failures. Each sync checks the team identity again. Nova supplies a fixed dataset; dates and analytics are anchored to the latest statement date.
+Open http://127.0.0.1:3005 and select **Sync Bank Feed**. The existing Express server runs Vite, the application API, and the voice routes together in one process. Completed imports are retained across restarts. Account Aggregator (AA) Bank Sync calls are GET-only, paginated, cached for the server session, and retried on supported transient failures. Each sync checks the team identity again. The supplied dataset is fixed; dates and analytics are anchored to the latest statement date.
 
 To run the production build locally:
 
@@ -47,7 +47,7 @@ Open the HTTPS URL, select **Voice Assistant**, and press **Call**. The greeting
 
 `server/index.ts` mounts the root `server.ts` voice module before Vite/static middleware. `GET /voice/greeting`, `POST /voice/process`, and `GET /audio/:id` all use port **3005**. Vite HMR shares that same HTTP server. No separate voice process, port 4000 listener, or `/voice`/`/audio` proxy is used. Set `PUBLIC_BASE_URL` to the ngrok HTTPS URL, then restart the dev server; Vite and the API allow that configured public host.
 
-Calls and typed questions use the same imported Nova transactions as Analytics. Dated and relative cash-flow questions use the Analytics row filters and exclude internal transfers. Questions outside the imported statement range state the available dates instead of substituting the latest balance.
+Calls and typed questions use the same imported Account Aggregator (AA) Bank Sync transactions as Analytics. Dated and relative cash-flow questions use the Analytics row filters and exclude internal transfers. Questions outside the imported statement range state the available dates instead of substituting the latest balance.
 
 ElevenLabs uses `eleven_flash_v2_5` with a 20-second provider timeout. Successful MP3s are cached in memory and reused. Call audio, typed questions, quick prompts, and replay all use MP3s returned by the server. Failed synthesis or MP3 playback shows an error in the Voice Assistant; browser speech synthesis is not used. No file under `src/` imports the server module or accesses the voice/ngrok secret environment variables. Typed history is saved in SQLite; call transcripts remain in the current view.
 
@@ -67,16 +67,16 @@ After the host assigns a public HTTPS domain, add that exact origin and `<origin
 - Financial Analytics tab with date and bank filters, six live metrics, a clickable calendar heatmap, daily transaction drilldowns, bank statement comparisons, and subscription amount checks. Drilldown lines open their recorded Decision Trace.
 - Persistent human reviews with correction reuse; conflicting source evidence stays visible for review.
 - Decision Trace replays actual stored evidence through server-sent events. It is labelled as replay and does not invent model reasoning or processing times.
-- One-transaction share pages with random tokens and a fresh Nova record check. Unknown tokens reveal nothing.
+- One-transaction share pages with random tokens and a fresh Account Aggregator (AA) Bank Sync record check. Unknown tokens reveal nothing.
 - Beneficiary-change warnings based on subsequent payments, plus local acknowledgement/review actions.
 - Microphone input through browser speech recognition, editable typed fallback, pending notes, and explicit amount-matched bank reconciliation.
 - Financial questions about cash, reviews, the displayed data week's spending, overdue obligations, and beneficiary risk; answers use imported records and can be spoken aloud.
 
-Data is stored in ignored `data/ledgerlens.sqlite`, partitioned by Nova team and dataset. Back up this directory if preserving reviews, notes, and share tokens matters. The API keys and data are excluded from the browser build.
+Data is stored in ignored `data/ledgerlens.sqlite`, partitioned by the Account Aggregator (AA) Bank Sync team and dataset. Back up this directory if preserving reviews, notes, and share tokens matters. The API keys and data are excluded from the browser build.
 
 ## Prototype boundaries
 
-Development binds to `127.0.0.1:3005`; production binds to `0.0.0.0` on its configured port. Ngrok remains an option for local demos. LedgerLens requires a Supabase session for its dashboard, API, voice, and audio routes. Public transaction share links remain accessible by token. Every signed-up account currently sees the same Nova dataset and shared review/note state.
+Development binds to `127.0.0.1:3005`; production binds to `0.0.0.0` on its configured port. Ngrok remains an option for local demos. LedgerLens requires a Supabase session for its dashboard, API, voice, and audio routes. Public transaction share links remain accessible by token. Every signed-up account currently sees the same Account Aggregator (AA) Bank Sync dataset and shared review/note state.
 
 ## Supabase sign-in
 
@@ -91,7 +91,7 @@ Enable Google under Authentication → Providers and enter a Google Web OAuth Cl
 
 The app cannot freeze payments, perform bank verification, or establish GST eligibility. Fraud alerts are review warnings. Browser speech support and microphone permission vary by browser; typed input remains available. Arbitrary audio-file uploads are not implemented.
 
-Gemini failures are displayed and leave unresolved entries in review. No other model is silently substituted. At verification on 2026-09-30, Nova imported **1,396 transactions across five accounts**, through **2026-09-29**. Gemini voice-note extraction succeeded in the browser. Transaction classification still returned **HTTP 503** after retries, so the 345 residual transactions remain without model suggestions and the review queue contains 522 items.
+Gemini failures are displayed and leave unresolved entries in review. No other model is silently substituted. At verification on 2026-09-30, Account Aggregator (AA) Bank Sync imported **1,396 transactions across five accounts**, through **2026-09-29**. Gemini voice-note extraction succeeded in the browser. Transaction classification still returned **HTTP 503** after retries, so the 345 residual transactions remain without model suggestions and the review queue contains 522 items.
 
 ## Verification
 
@@ -101,5 +101,5 @@ npm run lint
 npm run build
 ```
 
-Automated tests cover Nova pagination/cache/retries, source precedence, exact amounts, transfer ambiguity, correction persistence, fraud windows, model-output validation/retries, SQLite restart/team isolation/rollback, failed-sync retention, review/share/note flows, origin rejection, trace streaming, Analytics calculations, configured ngrok origins, all voice intents, MP3 serving, TTS failure fallback, continuous call sequencing, microphone errors, and hangup cancellation. Live microphone capture requires a user microphone and has not been verified.
+Automated tests cover Account Aggregator (AA) Bank Sync pagination/cache/retries, source precedence, exact amounts, transfer ambiguity, correction persistence, fraud windows, model-output validation/retries, SQLite restart/team isolation/rollback, failed-sync retention, review/share/note flows, origin rejection, trace streaming, Analytics calculations, configured ngrok origins, all voice intents, MP3 serving, TTS failure fallback, continuous call sequencing, microphone errors, and hangup cancellation. Live microphone capture requires a user microphone and has not been verified.
 

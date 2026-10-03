@@ -1,3 +1,4 @@
+import { displayText } from "../../shared/branding.ts";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { BeneficiaryChange, Transaction } from "../types/finance";
@@ -43,7 +44,7 @@ export const FraudAlertView: React.FC<FraudAlertViewProps> = ({
     try {
       await onVerifyPennyDrop(id);
       setActionNotice(
-        "Alert acknowledged in LedgerLens. Nova verification status is unchanged.",
+        "Alert acknowledged in LedgerLens. Account Aggregator (AA) Bank Sync verification status is unchanged.",
       );
     } catch (e) {
       setActionNotice((e as Error).message);
@@ -93,7 +94,7 @@ export const FraudAlertView: React.FC<FraudAlertViewProps> = ({
               </div>
               <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
                 Review payments made shortly after beneficiary details changed.
-                Alerts are local review records; Nova remains read-only.
+                Alerts are local review records; Account Aggregator (AA) Bank Sync remains read-only.
               </p>
             </div>
           </div>
@@ -133,7 +134,7 @@ export const FraudAlertView: React.FC<FraudAlertViewProps> = ({
               className="flex items-center gap-2.5 px-4 py-3 bg-zinc-900/90 border border-white/30 rounded-2xl text-xs font-mono text-white backdrop-blur-xl shadow-xl"
             >
               <CheckCircle2 className="w-4 h-4 text-white shrink-0" />
-              <span>{actionNotice}</span>
+              <span>{displayText(actionNotice)}</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -176,7 +177,7 @@ export const FraudAlertView: React.FC<FraudAlertViewProps> = ({
                     </div>
                     <div>
                       <div className="font-bold text-white text-base flex items-center gap-2 font-sans">
-                        <span>{ben.vendorName}</span>
+                        <span>{displayText(ben.vendorName)}</span>
                         <span className="text-[11px] font-mono text-slate-400 font-normal">
                           GSTIN: {ben.gstin}
                         </span>
@@ -193,7 +194,7 @@ export const FraudAlertView: React.FC<FraudAlertViewProps> = ({
                     </span>
                     <span>·</span>
                     <span className="text-slate-400">Operator:</span>
-                    <span className="text-slate-200">{ben.changedBy}</span>
+                    <span className="text-slate-200">{displayText(ben.changedBy)}</span>
                   </div>
                 </div>
 
@@ -254,7 +255,7 @@ export const FraudAlertView: React.FC<FraudAlertViewProps> = ({
                           <span
                             className={`uppercase transition-colors ${isHov ? "text-slate-800 font-semibold" : "text-slate-400"}`}
                           >
-                            Nova verification:
+                            Account Aggregator (AA) Bank Sync verification:
                           </span>
                           <span
                             className={`font-bold uppercase ${
@@ -305,7 +306,7 @@ export const FraudAlertView: React.FC<FraudAlertViewProps> = ({
                   </AirBubbleBox>
                 </div>
 
-                <p className="text-xs text-amber-200 mb-4">{ben.reason}</p>
+                <p className="text-xs text-amber-200 mb-4">{displayText(ben.reason)}</p>
                 {/* Bottom Row: Clear Action Triggers */}
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/15">
                   <div className="text-xs text-slate-400 font-mono flex items-center gap-1.5">

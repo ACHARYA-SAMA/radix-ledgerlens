@@ -49,7 +49,7 @@ server.listen(port, host, () =>
 void service.initialize().catch((error) => {
   service.syncStatus = {
     running: false,
-    message: "Nova connection needs attention",
+    message: "Account Aggregator (AA) Bank Sync connection needs attention",
     error: error.message,
   };
 });

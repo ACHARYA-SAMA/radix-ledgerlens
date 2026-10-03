@@ -12,7 +12,7 @@ export function formatRupees(amount: number): string {
 export function formatForSpeech(text: string): string {
   const convertedAmounts: string[] = [];
   const formatted = text
-    .replace(/Status comes from Nova[’']s fixed dataset date\.?/gi, "")
+    .replace(/Status comes from (?:Nova|Account Aggregator \(AA\) Bank Sync)[’']s fixed dataset date\.?/gi, "")
     .replace(/(-\s*)?₹\s*(-?\s*\d[\d,]*(?:\.\d+)?)/g, (_match, leadingMinus: string | undefined, amount: string) => {
       const value = Number(amount.replace(/[,\s]/g, ""));
       const spoken = Number.isFinite(value)

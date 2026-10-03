@@ -10,6 +10,13 @@ export const shiftDays = (date: string, days: number) => {
 };
 export const signedPaise = (tx: Transaction) =>
   tx.signedPaise ?? paise(tx.amount) * (tx.type === "credit" ? 1 : -1);
+/** Imported closing balances plus the separate live overlay, even for backdated live entries. */
+export function accountClosingPaise(rows: Transaction[], openingRupees: number) {
+  const imported = rows.filter(tx => !tx.origin).sort((a, b) => a.date.localeCompare(b.date) || (a.lineNo ?? 0) - (b.lineNo ?? 0) || a.id.localeCompare(b.id));
+  let balance = paise(openingRupees);
+  for (const tx of imported) balance = tx.runningBalance == null ? balance + signedPaise(tx) : paise(tx.runningBalance);
+  return balance + rows.filter(tx => tx.origin).reduce((sum, tx) => sum + signedPaise(tx), 0);
+}
 export const isTransfer = (tx: Transaction) =>
   tx.isInternalTransfer === true ||
   !!tx.transferId ||

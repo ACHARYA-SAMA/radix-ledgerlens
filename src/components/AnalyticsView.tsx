@@ -1,3 +1,4 @@
+import { displayText } from "../../shared/branding.ts";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -25,6 +26,7 @@ import { formatDateIndian, formatINR } from "../utils/formatters";
 import { sound } from "../utils/audioSynthesizer";
 import {
   calendarDays,
+  accountClosingPaise,
   dateOnly,
   duplicateGroups,
   filterTransactions,
@@ -185,9 +187,15 @@ export function AnalyticsView({
 
   useEffect(() => {
     if (!first || !last) return;
-    setStart((value) => value || first);
-    setEnd((value) => value || last);
-  }, [first, last]);
+    if (["All Dates", "Last 7 Days", "Last 14 Days", "This Month"].includes(preset)) {
+      const next = preset === "Last 7 Days" ? shiftDays(last, -6) : preset === "Last 14 Days" ? shiftDays(last, -13) : preset === "This Month" ? `${last.slice(0, 7)}-01` : first;
+      setStart(next < first ? first : next);
+      setEnd(last);
+    } else {
+      setStart(value => value || first);
+      setEnd(value => value || last);
+    }
+  }, [first, last, preset]);
   useEffect(() => {
     if (selectedDate && (selectedDate < start || selectedDate > end))
       setSelectedDate(null);
@@ -332,9 +340,10 @@ export function AnalyticsView({
       const account = bankAccounts.find(item => item.id === bankId);
       const report = buildAnalyticsPdf({
         rows: rangeRows,
+        allRows: transactions,
         start,
         end,
-        bankLabel: account ? `${account.bank} ${account.accountLast4}` : "All banks",
+        bankLabel: account ? `${displayText(account.bank)} ${account.accountLast4}` : "All banks",
         bankAccounts,
         subscriptions,
         beneficiaryChanges,
@@ -456,7 +465,7 @@ export function AnalyticsView({
                   }}
                   className={`rounded-lg border px-3 py-2 font-mono text-[11px] transition-colors focus-visible:outline-2 focus-visible:outline-white ${bankId === account.id ? "bg-white text-black border-white" : "bg-zinc-900/70 text-slate-300 border-white/15 hover:border-white/50"}`}
                 >
-                  {account.bank}
+                  {displayText(account.bank)}
                   {account.accountLast4 ? ` · ${account.accountLast4}` : ""}
                 </button>
               ))}
@@ -550,7 +559,7 @@ export function AnalyticsView({
                   label="Fraud alerts & payout status"
                   value={`${totals.fraudCount} flagged`}
                   detail={`${alerts.length} beneficiary-change alerts · ${money(totals.fraudPaise)} flagged line value`}
-                  foot="Escrow or frozen amount not supplied by Nova"
+                  foot="Escrow or frozen amount not supplied by Account Aggregator (AA) Bank Sync"
                   accent="var(--chart-red)"
                   ratio={share(totals.fraudCount, activeRows.length)}
                   scaleLabel="Share of statement lines"
@@ -818,7 +827,7 @@ export function AnalyticsView({
                           key={item.name}
                           className="flex justify-between border-b border-white/10 py-2 text-xs"
                         >
-                          <span>{item.name}</span>
+                          <span>{displayText(item.name)}</span>
                           <span className="font-mono">
                             {money(item.amountPaise)}
                           </span>
@@ -848,11 +857,11 @@ export function AnalyticsView({
                         </span>
                         <span
                           className="min-w-[145px] flex-1 truncate"
-                          title={tx.rawNarration}
+                          title={displayText(tx.rawNarration)}
                         >
-                          {tx.vendorClientName}
+                          {displayText(tx.vendorClientName)}
                         </span>
-                        <span className="text-slate-400">{tx.category}</span>
+                        <span className="text-slate-400">{displayText(tx.category)}</span>
                         <span className="rounded border border-white/20 px-1.5 py-0.5 font-mono text-[10px]">
                           {tx.rail}
                         </span>
@@ -904,14 +913,7 @@ export function AnalyticsView({
                         (a.lineNo ?? 0) - (b.lineNo ?? 0),
                     );
                   const lastLine = accountHistory.at(-1);
-                  const closing =
-                    lastLine?.runningBalance != null
-                      ? paise(lastLine.runningBalance)
-                      : originalOpening +
-                        accountHistory.reduce(
-                          (n, tx) => n + signedPaise(tx),
-                          0,
-                        );
+                  const closing = accountClosingPaise(accountHistory, account.openingBalance);
                   const full = Math.max(
                     1,
                     stat.moneyInPaise,
@@ -932,10 +934,10 @@ export function AnalyticsView({
                         <div>
                           <p className={smallLabel}>
                             {account.statementFormat.toUpperCase()} /{" "}
-                            {account.purpose}
+                            {displayText(account.purpose)}
                           </p>
                           <h3 className="mt-2 text-lg font-bold">
-                            {account.bank}
+                            {displayText(account.bank)}
                           </h3>
                           <p className="font-mono text-xs text-slate-400">
                             Account •••• {account.accountLast4 || "unknown"}
@@ -1081,13 +1083,13 @@ export function AnalyticsView({
                       >
                         <div className="flex flex-wrap justify-between gap-2">
                           <span className="font-semibold">
-                            {sub.vendorName}
+                            {displayText(sub.vendorName)}
                           </span>
                           <span className="font-mono text-slate-400">
                             {sub.billingCycle} · {sub.status}
                           </span>
                         </div>
-                        <p className="mt-1 text-slate-400">{sub.name}</p>
+                        <p className="mt-1 text-slate-400">{displayText(sub.name)}</p>
                         <div className="mt-2 flex flex-wrap justify-between gap-2 font-mono">
                           <span>
                             Expected {formatINR(sub.currentAmount)} / cycle
@@ -1124,7 +1126,7 @@ export function AnalyticsView({
                       className="rounded-xl border border-white/10 bg-black/45 p-3 text-xs"
                     >
                       <div className="flex flex-wrap justify-between gap-2">
-                        <span className="font-semibold">{vendor.name}</span>
+                        <span className="font-semibold">{displayText(vendor.name)}</span>
                         <span className="font-mono text-amber-200">
                           Pattern only · no source plan
                         </span>

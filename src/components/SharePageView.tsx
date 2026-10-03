@@ -1,3 +1,4 @@
+import { displayText } from "../../shared/branding.ts";
 import React, { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Copy, Printer, ShieldCheck } from "lucide-react";
@@ -21,7 +22,7 @@ export function SharePageView({ token }: { token: string }) {
         </div>
         {error ? (
           <div role="alert" className="border border-white/20 rounded-3xl p-10">
-            {error}
+            {displayText(error)}
           </div>
         ) : !tx ? (
           <p>Loading shared record…</p>
@@ -34,7 +35,7 @@ export function SharePageView({ token }: { token: string }) {
             <p className="text-xs text-slate-400 uppercase tracking-widest">
               {tx.type === "debit" ? "Payment to" : "Receipt from"}
             </p>
-            <h1 className="text-2xl font-bold mt-3">{tx.vendorClientName}</h1>
+            <h1 className="text-2xl font-bold mt-3">{displayText(tx.vendorClientName)}</h1>
             <p className="text-4xl font-mono font-bold mt-6">
               {formatINR(tx.amount)}
             </p>
@@ -44,7 +45,7 @@ export function SharePageView({ token }: { token: string }) {
             <div className="grid sm:grid-cols-2 gap-6 py-8 my-8 border-y border-white/15">
               <div>
                 <p className="text-xs text-slate-400">Category</p>
-                <p className="mt-2">{tx.category}</p>
+                <p className="mt-2">{displayText(tx.category)}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-400">Review status</p>
@@ -53,16 +54,16 @@ export function SharePageView({ token }: { token: string }) {
             </div>
             <h2 className="font-semibold">Why this category?</h2>
             <p className="text-sm text-slate-300 mt-3 leading-relaxed">
-              {tx.citation.explanation}
+              {displayText(tx.citation.explanation)}
             </p>
             {tx.citation.sourceDocument && (
               <p className="font-mono text-xs mt-3 break-all">
-                Source: {tx.citation.sourceDocument}
+                Source: {displayText(tx.citation.sourceDocument)}
               </p>
             )}
             <details className="mt-6 text-xs text-slate-400">
               <summary>Original bank narration</summary>
-              <p className="mt-3 break-all">{tx.rawNarration}</p>
+              <p className="mt-3 break-all">{displayText(tx.rawNarration)}</p>
             </details>
             <div className="flex gap-3 mt-8">
               <button

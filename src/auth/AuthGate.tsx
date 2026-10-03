@@ -6,8 +6,11 @@ import FloatingMoney from "./FloatingMoney";
 import { CrowdCanvas } from "./CrowdCanvas";
 import { supabase } from "../lib/supabase";
 import ResetPassword from "./ResetPassword";
+import { isMobileRoute } from "../lib/publicRoute.ts";
 
 export default function AuthGate() {
+  const [mobile, setMobile] = useState(isMobileRoute);
+  useEffect(() => { const route = () => setMobile(isMobileRoute()); window.addEventListener("hashchange", route); window.addEventListener("popstate", route); return () => { window.removeEventListener("hashchange", route); window.removeEventListener("popstate", route); }; }, []);
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   useEffect(() => {
     if (!supabase) { setSession(null); return; }
@@ -17,7 +20,7 @@ export default function AuthGate() {
     return () => { mounted = false; listener.subscription.unsubscribe(); };
   }, []);
 
-  if (/^\/share\/[^/]+$/.test(window.location.pathname)) return <App />;
+  if (mobile || /^\/share\/[^/]+$/.test(window.location.pathname)) return <App />;
   if (window.location.pathname === "/reset-password") return <ResetPassword />;
   if (session === undefined) return <div className="min-h-screen bg-white" />;
   if (session) return <App key={session.user.id} />;

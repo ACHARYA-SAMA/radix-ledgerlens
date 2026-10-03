@@ -1,3 +1,4 @@
+import { displayText } from "../../shared/branding.ts";
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { VoiceNote, Transaction } from "../types/finance";
@@ -304,7 +305,7 @@ export const VoiceNoteView: React.FC<VoiceNoteViewProps> = ({
 
           {error && (
             <p role="alert" className="text-xs text-amber-200">
-              {error}
+              {displayText(error)}
             </p>
           )}
           {/* Transcript Preview & Correction Surface */}
@@ -435,7 +436,7 @@ export const VoiceNoteView: React.FC<VoiceNoteViewProps> = ({
                     <div className="flex items-center gap-2">
                       <FileAudio className="w-4 h-4 text-slate-300" />
                       <span className="font-bold text-white text-xs">
-                        {note.extractedEntity}
+                        {displayText(note.extractedEntity)}
                       </span>
                       <span className="text-[11px] font-mono text-slate-500">
                         · {note.recordedAt}
@@ -443,14 +444,14 @@ export const VoiceNoteView: React.FC<VoiceNoteViewProps> = ({
                     </div>
 
                     <p className="text-xs text-slate-300 italic font-sans leading-relaxed">
-                      "{note.transcript}"
+                      "{displayText(note.transcript)}"
                     </p>
 
                     <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400 pt-0.5">
                       <span>
                         Category:{" "}
                         <strong className="text-white">
-                          {note.extractedCategory}
+                          {displayText(note.extractedCategory)}
                         </strong>
                       </span>
                     </div>
@@ -464,7 +465,7 @@ export const VoiceNoteView: React.FC<VoiceNoteViewProps> = ({
 
                     {isPending && (
                       <select
-                        aria-label={`Match note for ${note.extractedEntity}`}
+                        aria-label={`Match note for ${displayText(note.extractedEntity)}`}
                         defaultValue=""
                         className="bg-zinc-900 text-xs max-w-xs p-2 rounded-lg border border-white/20"
                         onChange={async (e) => {

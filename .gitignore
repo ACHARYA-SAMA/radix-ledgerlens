@@ -9,3 +9,4 @@ coverage/
 /data/
 .local/
 /.review-*.png
+/tmp/

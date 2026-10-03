@@ -63,7 +63,7 @@ export function checkBeneficiaryChanges(
       transactionIds: successful
         .map((p) => p.bank_transaction_id)
         .filter(Boolean),
-      reason: `${payments.length} payment record(s) within ${windowDays} days of ${change.field ?? "bank details"} change; ${successful.length} successful. Account verification: ${account.verified === true ? "verified by Nova" : account.verified === false ? "unverified" : "unknown"}. Review before any further processing.`,
+      reason: `${payments.length} payment record(s) within ${windowDays} days of ${change.field ?? "bank details"} change; ${successful.length} successful. Account verification: ${account.verified === true ? "verified by Account Aggregator (AA) Bank Sync" : account.verified === false ? "unverified" : "unknown"}. Review before any further processing.`,
     });
   }
   return alerts;

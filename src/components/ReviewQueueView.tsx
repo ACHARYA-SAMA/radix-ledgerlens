@@ -1,3 +1,4 @@
+import { displayText } from "../../shared/branding.ts";
 import React, { useState, useEffect } from "react";
 import {
   motion,
@@ -115,7 +116,7 @@ export const ReviewQueueView: React.FC<ReviewQueueViewProps> = ({
       return;
     }
     setLastActionMessage(
-      `Confirmed category for ${currentItem.vendorClientName}`,
+      `Confirmed category for ${displayText(currentItem.vendorClientName)}`,
     );
     setIsEditingCategory(false);
     if (currentIndex >= queueItems.length - 1) {
@@ -148,7 +149,7 @@ export const ReviewQueueView: React.FC<ReviewQueueViewProps> = ({
       return;
     }
     setLastActionMessage(
-      `Flagged security risk: ${currentItem.vendorClientName}`,
+      `Flagged security risk: ${displayText(currentItem.vendorClientName)}`,
     );
   };
 
@@ -330,7 +331,7 @@ export const ReviewQueueView: React.FC<ReviewQueueViewProps> = ({
                   Statement Narration
                 </div>
                 <div className="p-4 bg-black/70 rounded-2xl border border-white/15 font-mono text-xs text-slate-200 break-all select-all shadow-inner">
-                  {currentItem.rawNarration}
+                  {displayText(currentItem.rawNarration)}
                 </div>
               </div>
 
@@ -342,7 +343,7 @@ export const ReviewQueueView: React.FC<ReviewQueueViewProps> = ({
                     <span>Classification ({currentItem.confidence}%)</span>
                   </div>
                   <span className="text-[11px] font-mono text-slate-400">
-                    {currentItem.citation.ruleName || currentItem.citation.type}
+                    {displayText(currentItem.citation.ruleName || currentItem.citation.type)}
                   </span>
                 </div>
 
@@ -352,7 +353,7 @@ export const ReviewQueueView: React.FC<ReviewQueueViewProps> = ({
                       Suggested Vendor / Entity
                     </div>
                     <div className="text-sm font-bold text-white mt-0.5">
-                      {currentItem.vendorClientName}
+                      {displayText(currentItem.vendorClientName)}
                     </div>
                   </div>
 
@@ -361,14 +362,14 @@ export const ReviewQueueView: React.FC<ReviewQueueViewProps> = ({
                       Suggested General Ledger Head
                     </div>
                     <div className="text-sm font-bold text-white mt-0.5">
-                      {currentItem.category} · {currentItem.subCategory}
+                      {displayText(currentItem.category)} · {displayText(currentItem.subCategory)}
                     </div>
                   </div>
                 </div>
 
                 <div className="text-xs text-slate-300 leading-relaxed border-t border-white/15 pt-2 font-sans">
                   <strong className="text-white font-semibold">Reason: </strong>
-                  {currentItem.citation.explanation}
+                  {displayText(currentItem.citation.explanation)}
                 </div>
                 {!!currentItem.duplicateIds?.length && (
                   <p className="text-xs text-amber-200">
@@ -379,7 +380,7 @@ export const ReviewQueueView: React.FC<ReviewQueueViewProps> = ({
                 )}
                 {currentItem.fraudWarning && (
                   <p className="text-xs text-red-300">
-                    {currentItem.fraudWarning.reason}
+                    {displayText(currentItem.fraudWarning.reason)}
                   </p>
                 )}
               </div>

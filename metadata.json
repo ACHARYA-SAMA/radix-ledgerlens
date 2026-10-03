@@ -1,5 +1,4 @@
 {
-  "name": "Aczen Nova // Bank Transaction Intelligence Engine",
-  "description": "AI-powered transaction intelligence, real-time ledger categorization, and fraud detection for Indian SMEs on Aczen's Nova accounting API.",
-  "requestFramePermissions": []
+  "name": "LedgerLens // Personal Financial Intelligence",
+  "description": "Personal financial intelligence with Account Aggregator (AA) Bank Sync, live transactions, goals, budgets, insights and exportable reports."
 }

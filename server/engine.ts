@@ -143,7 +143,7 @@ export function buildDataset(
           {
             stage: "Fetched",
             status: "passed",
-            reason: `Nova bank-transactions/${row.id}`,
+            reason: `Account Aggregator (AA) Bank Sync bank-transactions/${row.id}`,
           },
           {
             stage: "Normalized",

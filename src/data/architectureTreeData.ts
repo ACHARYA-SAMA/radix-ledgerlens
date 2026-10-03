@@ -183,10 +183,10 @@ export const ARCHITECTURE_SCENARIOS: TraceScenario[] = [
     }
   },
 
-  // SCENARIO 2: NOVA AI REASONING ON UNKNOWN RETAIL VENDOR (WITH TAX BLOCKING)
+  // SCENARIO 2: Account Aggregator (AA) Bank Sync AI REASONING ON UNKNOWN RETAIL VENDOR (WITH TAX BLOCKING)
   {
     id: 'scenario_nova_llm',
-    title: '2. Nova AI Neural Reasoning',
+    title: '2. Account Aggregator (AA) Bank Sync AI Neural Reasoning',
     subtitle: 'Zero-Shot Semantic Intent Mapping & CGST Sec 17(5) Blocking',
     badge: 'LLM INFERENCE',
     badgeColor: 'bg-zinc-800 text-white border-white/40 shadow-sm',
@@ -207,7 +207,7 @@ export const ARCHITECTURE_SCENARIOS: TraceScenario[] = [
       status: 'categorized',
       glAccount: 'Staff Welfare & Refreshments (Office Pantry)',
       itcEligible: false,
-      reasonSummary: 'Nova AI identified retail beverage vendor from UPI VPA. Rule TAX-SEC175-01 blocked Input Tax Credit under CGST Act Section 17(5)(b)(i).'
+      reasonSummary: 'Account Aggregator (AA) Bank Sync AI identified retail beverage vendor from UPI VPA. Rule TAX-SEC175-01 blocked Input Tax Credit under CGST Act Section 17(5)(b)(i).'
     },
     nodes: {
       node_ingest: {
@@ -247,7 +247,7 @@ export const ARCHITECTURE_SCENARIOS: TraceScenario[] = [
         systemName: 'Qdrant Master Vendor Vector Space',
         status: 'passed',
         metrics: { latencyMs: 19.3, evaluatedCondition: 'Max Cosine Similarity: 0.612 < 0.900' },
-        humanExplanation: 'Similarity score against approved master vendor contracts was 0.612, which fell below the 0.900 auto-match threshold. Routing to Nova AI Neural Classifier.',
+        humanExplanation: 'Similarity score against approved master vendor contracts was 0.612, which fell below the 0.900 auto-match threshold. Routing to Account Aggregator (AA) Bank Sync AI Neural Classifier.',
         deepInspection: {
           inputTensorOrPayload: 'Query: "Chai Point Bangalore" -> Nearest Vendor: "Chai Garam Foods" (Score 0.612)',
           internalLogic: 'Threshold Check: 0.612 < 0.900 -> Exact Contract Match Failed. Escalate to LLM Reasoning Pipeline.',
@@ -257,21 +257,21 @@ export const ARCHITECTURE_SCENARIOS: TraceScenario[] = [
       },
       node_nova_llm: {
         id: 'node_nova_llm',
-        label: 'Nova AI Reasoning Engine',
+        label: 'Account Aggregator (AA) Bank Sync AI Reasoning Engine',
         type: 'llm_reasoning',
-        systemName: 'Nova AI (Fine-Tuned on Indian Schedule III Accounting)',
+        systemName: 'Account Aggregator (AA) Bank Sync AI (Fine-Tuned on Indian Schedule III Accounting)',
         status: 'passed',
         metrics: {
           latencyMs: 240.5,
           confidenceScore: 96.8,
           evaluatedCondition: 'Top-1 Classification: Staff Welfare & Refreshments (Logits: 0.968)'
         },
-        humanExplanation: 'Nova AI analyzed the merchant context, transaction size (₹1,420), and business hour timing. It mapped the expense directly to Schedule III Chart of Accounts: "Staff Welfare & Refreshments".',
+        humanExplanation: 'Account Aggregator (AA) Bank Sync AI analyzed the merchant context, transaction size (₹1,420), and business hour timing. It mapped the expense directly to Schedule III Chart of Accounts: "Staff Welfare & Refreshments".',
         deepInspection: {
           inputTensorOrPayload: 'Prompt: Classify "CHAI_POINT_BANGALORE UPI tea@axis Rs 1420" under Companies Act 2013 Chart of Accounts.',
           internalLogic: 'Attention heads focused on "CHAI_POINT" and "Rs 1420" -> Determined office beverages for team meeting.',
           outputResult: 'Category: "Staff Welfare & Refreshments" | SubCategory: "Office Pantry & Beverages" | Confidence: 96.8%',
-          hyperparameters: { model: 'nova-ai-1.0', temperature: 0.1, top_p: 0.95 }
+          hyperparameters: { model: 'Account Aggregator (AA) Bank Sync-ai-1.0', temperature: 0.1, top_p: 0.95 }
         },
         childrenIds: ['node_tax_classifier']
       },
@@ -297,7 +297,7 @@ export const ARCHITECTURE_SCENARIOS: TraceScenario[] = [
         id: 'node_double_entry_gl',
         label: 'Double-Entry Journal Posting',
         type: 'ledger_output',
-        systemName: 'Aczen Nova General Ledger Subsystem',
+        systemName: 'Account Aggregator (AA) Bank Sync General Ledger Subsystem',
         status: 'passed',
         metrics: { latencyMs: 6.2, decisionCriteria: 'Balanced Voucher: Dr. Staff Welfare ₹1,420 | Cr. HDFC Operative ₹1,420' },
         humanExplanation: 'Balanced journal voucher committed with full audit citation and tax treatment notes.',
@@ -345,7 +345,7 @@ export const ARCHITECTURE_SCENARIOS: TraceScenario[] = [
         metrics: { latencyMs: 2.8, decisionCriteria: 'UTR N260928001928 Authenticated' },
         humanExplanation: 'Corporate outward NEFT remittance confirmed by RBI settlement batch.',
         deepInspection: {
-          inputTensorOrPayload: '{"UTR": "N260928001928", "Amt": 54200, "Remitter": "Aczen Tech", "Beneficiary": "SRIBALAJITRANS"}',
+          inputTensorOrPayload: '{"UTR": "N260928001928", "Amt": 54200, "Remitter": "Account Aggregator (AA) Bank Sync Tech", "Beneficiary": "SRIBALAJITRANS"}',
           internalLogic: 'NEFT Clearing Ack 200 OK',
           outputResult: 'Transaction Packet #TX-NEFT-1928'
         },

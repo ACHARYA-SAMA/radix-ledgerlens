@@ -1,3 +1,4 @@
+import { displayText } from "../../shared/branding.ts";
 import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Transaction } from "../types/finance";
@@ -338,7 +339,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
                           <td className="py-3 px-3 max-w-sm">
                             <div className="font-bold text-white truncate group-hover:text-slate-200 transition-colors">
-                              {tx.vendorClientName}
+                              {displayText(tx.vendorClientName)}
                             </div>
                             {(tx.recurring || !!tx.duplicateIds?.length) && (
                               <div className="flex gap-2 text-[10px] py-1">
@@ -354,9 +355,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                             )}
                             <div
                               className="text-[11px] text-slate-400 font-mono truncate"
-                              title={tx.rawNarration}
+                              title={displayText(tx.rawNarration)}
                             >
-                              {tx.rawNarration}
+                              {displayText(tx.rawNarration)}
                             </div>
                           </td>
 
@@ -368,10 +369,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
                           <td className="py-3 px-3">
                             <div className="text-white font-sans font-medium">
-                              {tx.category}
+                              {displayText(tx.category)}
                             </div>
                             <div className="text-[10px] text-slate-400 font-sans">
-                              {tx.subCategory}
+                              {displayText(tx.subCategory)}
                             </div>
                           </td>
 
@@ -477,7 +478,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                                       Statement Narration
                                     </div>
                                     <div className="font-mono bg-black/60 p-2.5 rounded-xl text-[11px] text-slate-200 border border-white/15 break-all select-all">
-                                      {tx.rawNarration}
+                                      {displayText(tx.rawNarration)}
                                     </div>
                                     <div className="text-[11px] text-slate-400 pt-1">
                                       <span>Account: </span>
@@ -496,7 +497,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                                       </span>
                                     </div>
                                     <p className="text-slate-200 text-xs leading-relaxed bg-black/40 p-2.5 rounded-xl border border-white/15">
-                                      {tx.citation.explanation}
+                                      {displayText(tx.citation.explanation)}
                                     </p>
                                     {tx.citation.sourceDocument && (
                                       <div className="text-[11px] text-slate-400 flex items-center gap-1.5 pt-1">
@@ -504,7 +505,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                                         <span>
                                           Source:{" "}
                                           <strong className="text-white font-mono">
-                                            {tx.citation.sourceDocument}
+                                            {displayText(tx.citation.sourceDocument)}
                                           </strong>
                                         </span>
                                       </div>

@@ -39,7 +39,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
       pennyDropStatus: 'name_mismatch'
     },
     shareToken: 'apex-fraud-warn-2026',
-    notes: 'Payout auto-held by Nova Fraud Sentinel. Requires physical signoff by Managing Director.'
+    notes: 'Payout auto-held by Account Aggregator (AA) Bank Sync Fraud Sentinel. Requires physical signoff by Managing Director.'
   },
   {
     id: 'tx_nov_002',
@@ -117,7 +117,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     confidence: 68,
     citation: {
       type: 'llm_inference',
-      ruleName: 'Nova Semantic Entity Extractor',
+      ruleName: 'Account Aggregator (AA) Bank Sync Semantic Entity Extractor',
       explanation: 'Narration indicates retail hardware merchant in Mumbai IT cluster. Inferred "IT Equipment", but lacks tax invoice and registered GSTIN on record.',
       confidence: 68,
       sourceDocument: 'UPI VPA Resolver: 9820019284@paytm'
@@ -198,7 +198,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     confidence: 96,
     citation: {
       type: 'llm_inference',
-      ruleName: 'Nova Semantic Entity Extractor',
+      ruleName: 'Account Aggregator (AA) Bank Sync Semantic Entity Extractor',
       explanation: 'Food & beverage merchant identified. Auto-flagged as non-creditable input tax under CGST Section 17(5)(b)(i) Food & Beverage restrictions.',
       confidence: 96,
       sourceDocument: 'Merchant Descriptor: CHAI POINT'
@@ -224,7 +224,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     confidence: 72,
     citation: {
       type: 'llm_inference',
-      ruleName: 'Nova Semantic Entity Extractor',
+      ruleName: 'Account Aggregator (AA) Bank Sync Semantic Entity Extractor',
       explanation: 'Transfer to employee UPI handle. Marked as Imprest Advance, pending physical voucher submission and bill reconciliation within 7 days.',
       confidence: 72,
       sourceDocument: 'Employee Registry Record: EMP-042'
@@ -278,7 +278,7 @@ export const INITIAL_TRANSACTIONS: Transaction[] = [
     confidence: 78,
     citation: {
       type: 'llm_inference',
-      ruleName: 'Nova Semantic Entity Extractor',
+      ruleName: 'Account Aggregator (AA) Bank Sync Semantic Entity Extractor',
       explanation: 'Vendor PAN fourth letter is "P" (Sole Proprietorship). TDS deducted at 1% instead of standard 2% corporate rate. Pending CA verification of MSME Certificate.',
       confidence: 78,
       sourceDocument: 'Bank Narration token: KALYAN_PRINTING_PRESS'
@@ -298,7 +298,7 @@ export const INITIAL_BENEFICIARY_CHANGES: BeneficiaryChange[] = [
     newAccount: '992810003418 (Kotak Mahindra)',
     oldIfsc: 'ICIC0000102',
     newIfsc: 'KKBK0001928',
-    changedBy: 'akash.ops@aczen-client.in',
+    changedBy: 'Account Aggregator (AA) Bank Sync',
     coolingOffHoursRemaining: 68,
     pennyDropStatus: 'name_mismatch',
     scheduledPayoutsTotal: 485000,
@@ -314,7 +314,7 @@ export const INITIAL_BENEFICIARY_CHANGES: BeneficiaryChange[] = [
     newAccount: '002910400018 (State Bank of India)',
     oldIfsc: 'HDFC0000029',
     newIfsc: 'SBIN0004018',
-    changedBy: 'priya.finance@aczen-client.in',
+    changedBy: 'Account Aggregator (AA) Bank Sync',
     coolingOffHoursRemaining: 0,
     pennyDropStatus: 'verified',
     scheduledPayoutsTotal: 122000,
@@ -330,7 +330,7 @@ export const INITIAL_BENEFICIARY_CHANGES: BeneficiaryChange[] = [
     newAccount: '92402001928410 (Axis Bank)',
     oldIfsc: 'UBIN0533181',
     newIfsc: 'UTIB0000240',
-    changedBy: 'akash.ops@aczen-client.in',
+    changedBy: 'Account Aggregator (AA) Bank Sync',
     coolingOffHoursRemaining: 164,
     pennyDropStatus: 'pending',
     scheduledPayoutsTotal: 340000,

@@ -1,3 +1,4 @@
+import { displayText } from "../../shared/branding.ts";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type {
@@ -214,7 +215,7 @@ const TraceGraph: React.FC<DecisionTraceViewProps> = ({
             >
               {transactions.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.date} · {t.vendorClientName} · {formatINR(t.amount)}
+                  {t.date} · {displayText(t.vendorClientName)} · {formatINR(t.amount)}
                 </option>
               ))}
             </select>
@@ -223,7 +224,7 @@ const TraceGraph: React.FC<DecisionTraceViewProps> = ({
             </p>
             {streamError && (
               <p role="alert" className="text-red-300">
-                {streamError}
+                {displayText(streamError)}
               </p>
             )}
           </div>
@@ -240,14 +241,14 @@ const TraceGraph: React.FC<DecisionTraceViewProps> = ({
                 Statement Item:
               </span>
               <span className="font-bold text-white text-sm">
-                {scenario.vendorName}
+                {displayText(scenario.vendorName)}
               </span>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-800 text-slate-200 border border-white/20">
                 {scenario.rail}
               </span>
             </div>
             <div className="font-mono text-xs text-slate-200 break-all select-all">
-              {scenario.rawNarration}
+              {displayText(scenario.rawNarration)}
             </div>
           </div>
 
@@ -397,7 +398,7 @@ const TraceGraph: React.FC<DecisionTraceViewProps> = ({
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-white text-xs sm:text-sm font-sans truncate">
-                              {node.label}
+                              {displayText(node.label)}
                             </span>
                             {isForkGate && (
                               <span className="px-2 py-0.2 rounded-full text-[9px] font-mono font-bold bg-amber-950/80 text-amber-300 border border-amber-500/40 uppercase tracking-widest">
@@ -418,12 +419,12 @@ const TraceGraph: React.FC<DecisionTraceViewProps> = ({
 
                         {/* Subsystem Name */}
                         <div className="text-[11px] font-mono text-slate-400 mt-0.5 truncate tracking-wide">
-                          {node.systemName}
+                          {displayText(node.systemName)}
                         </div>
 
                         {/* Human summary preview */}
                         <p className="text-xs text-slate-300 font-sans mt-1 line-clamp-1">
-                          {node.humanExplanation}
+                          {displayText(node.humanExplanation)}
                         </p>
 
                         {/* Evaluated Condition / Criteria tag */}
@@ -435,7 +436,7 @@ const TraceGraph: React.FC<DecisionTraceViewProps> = ({
                         {node.metrics.decisionCriteria &&
                           !node.metrics.evaluatedCondition && (
                             <div className="mt-2 text-[10px] font-mono px-2 py-0.5 rounded-lg bg-black/60 border border-white/20 text-slate-200 inline-block">
-                              {node.metrics.decisionCriteria}
+                              {displayText(node.metrics.decisionCriteria)}
                             </div>
                           )}
                       </div>
@@ -510,13 +511,13 @@ const TraceGraph: React.FC<DecisionTraceViewProps> = ({
                 {/* Node Identity */}
                 <div className="space-y-1">
                   <h2 className="text-lg font-bold text-white font-sans flex items-center gap-2">
-                    <span>{inspectedNode.label}</span>
+                    <span>{displayText(inspectedNode.label)}</span>
                     <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-zinc-800/80 text-slate-200 border border-white/20 font-normal">
                       {inspectedNode.type}
                     </span>
                   </h2>
                   <div className="text-xs font-mono text-slate-300">
-                    Component: {inspectedNode.systemName}
+                    Component: {displayText(inspectedNode.systemName)}
                   </div>
                 </div>
 
@@ -572,7 +573,7 @@ const TraceGraph: React.FC<DecisionTraceViewProps> = ({
                         <span>Why the AI Navigated Here (Plain English):</span>
                       </div>
                       <p className="text-xs text-slate-200 leading-relaxed bg-zinc-900/60 p-4 rounded-2xl border border-white/15 font-sans shadow-inner">
-                        {inspectedNode.humanExplanation}
+                        {displayText(inspectedNode.humanExplanation)}
                       </p>
                     </div>
 
@@ -582,8 +583,8 @@ const TraceGraph: React.FC<DecisionTraceViewProps> = ({
                         <span>Decision Rule / Gate Condition Evaluated:</span>
                       </div>
                       <div className="text-xs font-mono text-slate-200 bg-black/70 p-3.5 rounded-2xl border border-white/15 leading-relaxed">
-                        {inspectedNode.metrics.decisionCriteria ||
-                          inspectedNode.metrics.evaluatedCondition}
+                        {displayText(inspectedNode.metrics.decisionCriteria ||
+                          inspectedNode.metrics.evaluatedCondition)}
                       </div>
                     </div>
 
@@ -593,7 +594,7 @@ const TraceGraph: React.FC<DecisionTraceViewProps> = ({
                         Auditor Peace-of-Mind Notice:
                       </div>
                       <p className="text-slate-300 font-sans leading-relaxed">
-                        {scenario.finalOutcome.reasonSummary}
+                        {displayText(scenario.finalOutcome.reasonSummary)}
                       </p>
                     </div>
                   </motion.div>
@@ -611,7 +612,7 @@ const TraceGraph: React.FC<DecisionTraceViewProps> = ({
                         Source transaction
                       </div>
                       <pre className="p-3 bg-black/80 text-slate-200 rounded-2xl border border-white/15 text-[11px] overflow-x-auto whitespace-pre-wrap leading-relaxed select-all">
-                        {inspectedNode.deepInspection.inputTensorOrPayload}
+                        {displayText(inspectedNode.deepInspection.inputTensorOrPayload)}
                       </pre>
                     </div>
 
@@ -620,7 +621,7 @@ const TraceGraph: React.FC<DecisionTraceViewProps> = ({
                         Internal Math / Sequence Logic
                       </div>
                       <pre className="p-3 bg-black/80 text-slate-200 rounded-2xl border border-white/15 text-[11px] overflow-x-auto whitespace-pre-wrap leading-relaxed select-all">
-                        {inspectedNode.deepInspection.internalLogic}
+                        {displayText(inspectedNode.deepInspection.internalLogic)}
                       </pre>
                     </div>
 
@@ -629,7 +630,7 @@ const TraceGraph: React.FC<DecisionTraceViewProps> = ({
                         Output Result Packet
                       </div>
                       <pre className="p-3 bg-black/80 text-white rounded-2xl border border-white/15 text-[11px] overflow-x-auto whitespace-pre-wrap leading-relaxed select-all">
-                        {inspectedNode.deepInspection.outputResult}
+                        {displayText(inspectedNode.deepInspection.outputResult)}
                       </pre>
                     </div>
 
@@ -663,6 +664,6 @@ export const DecisionTraceView: React.FC<DecisionTraceViewProps> = (props) =>
     <TraceGraph {...props} />
   ) : (
     <div className="p-12 text-slate-400">
-      Sync Nova to inspect transaction decisions.
+      Sync Account Aggregator (AA) Bank Sync to inspect transaction decisions.
     </div>
   );

@@ -45,6 +45,8 @@ export interface FraudWarning {
 }
 
 export interface Transaction {
+  origin?: "phone" | "n8n";
+  receivedAt?: string;
   accountId?: string;
   signedPaise?: number;
   lineNo?: number;
@@ -163,6 +165,9 @@ export interface SubscriptionSummary {
   autoRenew: boolean;
 }
 export interface AppState {
+  planning?: import("../../shared/planning.ts").PlanningState;
+  importedTransactionCount?: number;
+  liveTransactionCount?: number;
   transactions: Transaction[];
   bankAccounts: BankAccountSummary[];
   subscriptions: SubscriptionSummary[];

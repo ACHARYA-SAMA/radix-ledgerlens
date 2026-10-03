@@ -1,3 +1,4 @@
+import { displayText } from "../../shared/branding.ts";
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import type { Transaction, AnalyticsSummary } from "../types/finance";
@@ -28,6 +29,9 @@ const PRESET_QUERIES = [
   "How many transactions need review?",
   "What is this week’s spending by category?",
   "Is anything overdue?",
+  "What are my budgets?",
+  "How much is safe to spend?",
+  "How are my savings goals progressing?",
 ];
 
 export const VoiceChatView: React.FC<VoiceChatViewProps> = ({ transactions }) => {
@@ -113,7 +117,7 @@ export const VoiceChatView: React.FC<VoiceChatViewProps> = ({ transactions }) =>
       <div className="w-full max-w-3xl space-y-6">
         {error && (
           <p role="alert" className="text-xs text-amber-200">
-            {error}
+            {displayText(error)}
           </p>
         )}
         {busy && (
@@ -248,9 +252,9 @@ export const VoiceChatView: React.FC<VoiceChatViewProps> = ({ transactions }) =>
 
         {/* Visible Transcripts & Spoken Answers */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs font-mono text-slate-400 pb-1 border-b border-white/15">
+          <div className="flex flex-wrap gap-2 items-center justify-between text-xs font-mono text-slate-400 pb-1 border-b border-white/15">
             <span>TRANSCRIPT HISTORY</span>
-            <span className="text-slate-300 font-bold">IMPORTED NOVA DATA</span>
+            <span className="text-slate-300 font-bold">Account Aggregator (AA) Bank Sync</span>
           </div>
 
           <div className="space-y-4">
@@ -269,10 +273,10 @@ export const VoiceChatView: React.FC<VoiceChatViewProps> = ({ transactions }) =>
                   </div>
                   <div>
                     <div className="text-[10px] font-mono text-slate-500">
-                      {exchange.source === "call" ? "CALL · IMPORTED NOVA DATA" : "VOICE TRANSCRIPT"} · {exchange.timestamp}
+                      {exchange.source === "call" ? "CALL · IMPORTED Account Aggregator (AA) Bank Sync DATA" : "VOICE TRANSCRIPT"} · {exchange.timestamp}
                     </div>
                     <div className="text-sm font-semibold text-white mt-0.5 font-sans">
-                      "{exchange.query}"
+                      "{displayText(exchange.query)}"
                     </div>
                   </div>
                 </div>
@@ -306,17 +310,17 @@ export const VoiceChatView: React.FC<VoiceChatViewProps> = ({ transactions }) =>
                     </div>
 
                     <p className="text-xs text-slate-200 leading-relaxed font-sans">
-                      {exchange.answer}
+                      {displayText(exchange.answer)}
                     </p>
 
                     {exchange.metadata && (
                       <div className="flex items-center gap-3 pt-1 text-[11px] font-mono">
                         <span className="text-white font-bold">
-                          {exchange.metadata.figures}
+                          {displayText(exchange.metadata.figures)}
                         </span>
                         <span className="text-slate-600">·</span>
                         <span className="text-slate-400">
-                          {exchange.metadata.actionable}
+                          {displayText(exchange.metadata.actionable)}
                         </span>
                       </div>
                     )}

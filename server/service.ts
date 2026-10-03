@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
+import { EventEmitter } from "node:events";
 import { NovaClient, type Row } from "./nova.ts";
 import { Store } from "./store.ts";
 import { Gemini } from "./gemini.ts";
@@ -16,19 +17,16 @@ import { CATEGORIES, isCategory } from "../shared/categories.ts";
 import { formatForSpeech } from "../shared/formatForSpeech.ts";
 import { analyticsAnswer } from "./analyticsAnswers.ts";
 import type { AppState, Transaction, VoiceNote } from "../src/types/finance.ts";
-
-export class ServiceError extends Error {
-  status: number;
-  constructor(message: string, status = 400) {
-    super(message);
-    this.status = status;
-  }
-}
+import { ServiceError } from "./errors.ts";
+export { ServiceError } from "./errors.ts";
+import { getPlanning } from "./personalFinance.ts";
+import { planningMetrics, inr } from "../shared/planning.ts";
 type Snapshot = ReturnType<typeof buildDataset> & {
   syncedAt: string;
   warnings: string[];
 };
 export class LedgerService {
+  events = new EventEmitter().setMaxListeners(100);
   store: Store;
   nova: NovaClient;
   gemini: Gemini;
@@ -37,7 +35,7 @@ export class LedgerService {
   ready = false;
   syncStatus: AppState["sync"] = {
     running: false,
-    message: "Ready to sync Nova",
+    message: "Ready to sync Account Aggregator (AA) Bank Sync",
   };
   constructor(
     store = new Store(),
@@ -60,8 +58,20 @@ export class LedgerService {
   }
   state(): AppState {
     const snapshot = this.snapshot;
+    const live = this.store.all<Transaction>("live-transaction").reverse();
+    const transactions = [...live, ...(snapshot?.transactions ?? [])];
+    const analytics = live.length ? analyze(transactions, this.sources["bank-accounts"] ?? []) : snapshot?.analytics ?? analyze([], []);
+    if (live.length && snapshot) {
+      // Source closing balances stay authoritative; apply the separate demo ledger as an overlay.
+      analytics.cashPosition = Math.round((snapshot.analytics.cashPosition + live.reduce((n, tx) => n + tx.signedPaise! / 100, 0)) * 100) / 100;
+      const dates = [...new Set([...(snapshot.analytics.cashTimeline ?? []).map(p => p.date), ...live.map(t => t.date)])].sort();
+      analytics.cashTimeline = dates.map(date => ({ date, balance: Math.round(((snapshot.analytics.cashTimeline?.filter(p => p.date <= date).at(-1)?.balance ?? (this.sources["bank-accounts"] ?? []).reduce((n, a) => n + Number(a.opening_balance ?? 0), 0)) + live.filter(t => t.date <= date).reduce((n, t) => n + t.signedPaise! / 100, 0)) * 100) / 100 }));
+    }
     return {
-      transactions: snapshot?.transactions ?? [],
+      transactions,
+      planning: getPlanning(this),
+      importedTransactionCount: snapshot?.transactions.length ?? 0,
+      liveTransactionCount: live.length,
       bankAccounts: (this.sources["bank-accounts"] ?? []).map((a) => ({
         id: String(a.id),
         bank: String(a.bank ?? "Bank"),
@@ -90,8 +100,8 @@ export class LedgerService {
           )?.status ?? a.activeStatus,
       })),
       voiceNotes: this.store.all<VoiceNote>("voice").reverse(),
-      analytics: snapshot?.analytics ?? analyze([], []),
-      dataDate: snapshot?.dataDate ?? null,
+      analytics,
+      dataDate: transactions.map(t => t.date).sort().at(-1) ?? snapshot?.dataDate ?? null,
       syncedAt: snapshot?.syncedAt ?? null,
       warnings: snapshot?.warnings ?? [],
       insights: snapshot?.insights ?? [],
@@ -108,7 +118,7 @@ export class LedgerService {
   }
   async sync() {
     if (this.syncStatus.running) return;
-    this.syncStatus = { running: true, message: "Checking Nova access" };
+    this.syncStatus = { running: true, message: "Checking Account Aggregator (AA) Bank Sync access" };
     try {
       await this.initialize();
       const warnings: string[] = [];
@@ -283,7 +293,7 @@ export class LedgerService {
     }
   }
   transaction(id: string) {
-    const tx = this.snapshot?.transactions.find((t) => t.id === id);
+    const tx = this.snapshot?.transactions.find((t) => t.id === id) ?? this.store.get<Transaction>("live-transaction", id);
     if (!tx) throw new ServiceError("Transaction unavailable", 404);
     return tx;
   }
@@ -325,9 +335,10 @@ export class LedgerService {
       const conflict = source && category !== sourceCategory;
       if (source) tx.sourceCategoryId = sourceCategory;
       if (tx.transferId && category !== "internal_transfer") {
+        if (tx.origin) { delete tx.transferId; tx.isInternalTransfer = false; }
         const pair = tx.transferId;
         for (const peer of this.snapshot!.transactions.filter(
-          (t) => t.transferId === pair,
+          (t) => pair && t.transferId === pair,
         )) {
           delete peer.transferId;
           if (peer.id !== id) {
@@ -370,6 +381,11 @@ export class LedgerService {
       reason: tx.citation.explanation,
     });
     finalizeTrace(tx);
+    if (tx.origin) {
+      this.store.put("live-transaction", tx.id, tx);
+      this.events.emit("changed");
+      return this.state();
+    }
     this.snapshot!.analytics = analyze(
       this.snapshot!.transactions,
       this.sources["bank-accounts"] ?? [],
@@ -386,12 +402,13 @@ export class LedgerService {
     return this.state();
   }
   share(id: string) {
-    this.transaction(id);
+    const tx = this.transaction(id);
     const token = randomBytes(24).toString("base64url");
     this.store.put("share", token, {
       token,
       novaResourceType: "bank-transactions",
       novaResourceId: id,
+      live: !!tx.origin,
       createdAt: new Date().toISOString(),
     });
     return { token, url: `/share/${token}` };
@@ -400,6 +417,11 @@ export class LedgerService {
     if (!/^[\w-]{32}$/.test(token)) return null;
     const share = this.store.get<any>("share", token);
     if (!share) return null;
+    if (share.live) {
+      const tx = this.store.get<Transaction>("live-transaction", share.novaResourceId);
+      if (!tx) return null;
+      return { id: tx.id, date: tx.date, amount: tx.amount, type: tx.type, vendorClientName: tx.vendorClientName, category: tx.category, status: tx.status, confidence: tx.confidence, citation: tx.citation, rawNarration: tx.rawNarration, shareToken: token };
+    }
     const raw = await this.nova.get(
       "bank-transactions",
       share.novaResourceId,
@@ -530,8 +552,14 @@ export class LedgerService {
       day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
     }).format(new Date(`${s.dataDate}T00:00:00Z`)) : "the latest statement date";
     const selectedAnalytics = s.syncedAt ? analyticsAnswer(query, s) : null;
+    const planning = s.planning && s.dataDate ? planningMetrics(s.transactions, s.planning, s.dataDate) : null;
     if (!s.syncedAt)
-      answer = "No completed Nova import is available yet. Sync Nova first.";
+      answer = "No completed Account Aggregator (AA) Bank Sync import is available yet. Sync the bank feed first.";
+    else if (planning && /\bbudget|\bgoal|safe.to.spend|saving|financial summary|financial health/.test(q)) {
+      if (/goal/.test(q)) answer = planning.goals.map(g => `${g.name} is ${g.percent.toFixed(0)}% complete. Save ${inr(g.monthlyNeeded)} per month toward ${inr(g.target)} by ${g.targetDate}.`).join(" ") + (s.planning!.starterPlan ? " These goals include illustrative starter balances." : "");
+      else if (/budget/.test(q)) answer = planning.budgets.map(b => `${b.name}: ${inr(b.spent)} spent of ${inr(b.limit)} budget${b.percent >= 100 ? ", over budget" : ""}.`).join(" ");
+      else answer = `As of ${s.dataDate}, monthly income is ${inr(planning.month.income)}, expenses are ${inr(planning.month.expense)}, and net savings are ${inr(planning.month.savings)}. Your daily safe-to-spend allowance is ${inr(planning.safeToSpend)}, after reserving your savings target.`;
+    }
     else if (selectedAnalytics)
       answer = selectedAnalytics;
     else if (/cash|balance|position/.test(q))
