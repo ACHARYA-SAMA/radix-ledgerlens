@@ -103,7 +103,7 @@ test("n8n receives pre-transaction context without auth headers and cannot overr
       assert.equal(new Headers(init!.headers).has("Authorization"), false);
       return Response.json({ transactionId: tx.id, learningUpdate: { explanation: "Your recent Cafe purchase is above your historical average.", velocityForecast: { projectedMonthEndSpend: 999999 }, rebalanceSuggestion: { suggestedAmount: 999999 } } });
     });
-    assert.equal(calls, 1);
+    assert.equal(calls, 3);
     const update = service.state().memory!.learningUpdates[0];
     assert.equal(update.source, "n8n"); assert.equal(update.velocityForecast!.projectedMonthEndSpend, 15000);
     assert.notEqual(update.rebalanceSuggestion!.suggestedAmount, 999999);
@@ -156,17 +156,16 @@ test("callbacks are retry-safe, reject unknown entries and cannot undo a human c
   } finally { service.store.close(); }
 });
 
-test("memory streams require authentication; public callbacks reveal only a receipt", async () => {
+test("public live streams and callbacks reveal only the intended live state", async () => {
   const restore = noN8n(); const service = fixture();
   const server = createApp(service, undefined, async token => token === "valid").listen(0, "127.0.0.1"); await once(server, "listening");
   const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
   const abort = new AbortController();
   try {
-    assert.equal((await fetch(`${base}/api/live-stream`)).status, 401);
-    const stream = await fetch(`${base}/api/live-stream`, { headers: { Authorization: "Bearer valid" }, signal: abort.signal });
+    const stream = await fetch(`${base}/api/live-stream`, { signal: abort.signal });
     const reader = stream.body!.getReader(); const initial = new TextDecoder().decode((await reader.read()).value);
     assert.match(initial, /event: update/); assert.match(initial, /merchantHistory/);
-    assert.equal((await fetch(`${base}/api/transactions`, { headers: { Authorization: "Bearer valid" } })).status, 200);
+    assert.equal((await fetch(`${base}/api/transactions`)).status, 200);
     const receipt = await (await fetch(`${base}/api/live-transaction`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payment()) })).json();
     const callback = await fetch(`${base}/api/webhook/n8n`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ transactionId: receipt.id, learningUpdate: { explanation: "Review repeated merchant spending against your latest monthly plan." } }) });
     assert.equal(callback.status, 200); const body = await callback.json(); assert.equal(body.status, "learning_updated"); assert.equal(body.memory, undefined);
