@@ -73,7 +73,10 @@ export function planningMetrics(rows: Transaction[], plan: PlanningState, asOf: 
   const monthDays = new Date(Date.UTC(Number(asOf.slice(0, 4)), Number(asOf.slice(5, 7)), 0)).getUTCDate();
   const remainingDays = Math.max(1, monthDays - days + 1);
   const savingsTarget = plan.profile.monthlyIncomeTarget * plan.profile.savingsTargetPct / 100;
-  const spendCapacity = Math.min(month.income, plan.profile.monthlyIncomeTarget);
+  // If a populated statement has expenses before its income row arrives, use the
+  // configured target as a provisional planning baseline. An empty ledger stays at zero.
+  const usesIncomeTargetFallback = month.income <= 0 && rows.length > 0;
+  const spendCapacity = Math.min(usesIncomeTargetFallback ? plan.profile.monthlyIncomeTarget : month.income, plan.profile.monthlyIncomeTarget);
   const dailySpent = total(asOf, asOf).expense;
   const dailyLimitRemaining = plan.profile.dailySpendLimit == null ? null : Math.max(0, plan.profile.dailySpendLimit - dailySpent);
   const safeToSpend = Math.min(Math.max(0, (spendCapacity - month.expense - savingsTarget - (plan.allocationsByMonth?.[asOf.slice(0, 7)] ?? 0)) / remainingDays), dailyLimitRemaining ?? Infinity);
@@ -98,7 +101,7 @@ export function planningMetrics(rows: Transaction[], plan: PlanningState, asOf: 
     ...(goals.filter(g => g.remaining > 0).slice(0, 2).map(g => `${g.name}: set aside ${inr(g.monthlyNeeded)} per month to reach ${inr(g.target)} by ${g.targetDate}.${g.overdue ? " This target date has passed; revise the schedule." : ""}`)),
     weeklyChange !== null ? `Spending in the last seven days is ${Math.abs(weeklyChange).toFixed(0)}% ${weeklyChange >= 0 ? "higher" : "lower"} than the previous seven days.${weeklyChange > 25 ? " Review the recent large purchases before adding new commitments." : ""}` : "There is not enough prior-week spending to measure a weekly change.",
   ];
-  return { asOf, monthStart, weekStart, month, week, previousWeek, savingsRate, savingsTarget, safeToSpend, score, projectedExpense, projectedNet, weeklyChange, budgets, goals, recommendations };
+  return { asOf, monthStart, weekStart, month, week, previousWeek, savingsRate, savingsTarget, safeToSpend, score, projectedExpense, projectedNet, weeklyChange, budgets, goals, recommendations, usesIncomeTargetFallback };
 }
 
 export function planningAlerts(rows: Transaction[], plan: PlanningState, asOf: string, subscriptions: SubscriptionSummary[] = []): SpendingAlert[] {
