@@ -58,6 +58,8 @@ export function createApp(service: LedgerService, publicBaseUrl?: string, verify
     intakeRates.set(key, {until: rate && rate.until > now ? rate.until : now + 60000, count: rate && rate.until > now ? rate.count + 1 : 1});
     res.json(await service.voiceCommand(req.body));
   }));
+  // Register both intake routes before requireAuth: mobile and n8n need no token.
+  // ingestLive commits SQLite and emits SSE synchronously; cloud enrichment is detached.
   app.post("/api/live-transaction", intake("phone"));
   app.post("/api/webhook/n8n", intake("n8n"));
   app.get("/api/live-events", (_req, res) => {
@@ -80,7 +82,7 @@ export function createApp(service: LedgerService, publicBaseUrl?: string, verify
       guard(req, res, next);
     });
   }
-  // Full financial memory is streamed only after the same authentication guard as /state.
+  // This demo stream is public, matching the live-stream exemption above.
   app.get("/api/live-stream", (_req, res) => {
     if (service.events.listenerCount("changed") >= 100) { res.status(503).json({ error: "Connection limit reached." }); return; }
     const team = service.store.team;
@@ -96,7 +98,7 @@ export function createApp(service: LedgerService, publicBaseUrl?: string, verify
     changed();
     service.events.on("changed", changed);
     const timer = setInterval(() => res.write(": heartbeat\n\n"), 20000); timer.unref();
-    // Rotate connections so reconnecting clients revalidate their auth token.
+    // Rotate connections periodically so clients reconnect and recover missed updates.
     const expiry = setTimeout(() => res.end(), 60000); expiry.unref();
     res.on("close", () => { clearInterval(timer); clearTimeout(expiry); service.events.off("changed", changed); });
   });

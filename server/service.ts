@@ -44,8 +44,9 @@ export class LedgerService {
     if (callback && envelope.learningUpdate && !metadata) return receiveLearningCallback(this, input);
     const result = addLiveTransaction(this, normalizeLiveInput(input), source);
     if (callback) receiveLearningCallback(this, input);
-    // Callbacks never forward back into n8n. Repeated mobile requests never resend or reinsert.
-    if (!result.duplicate && source === "phone") void enrichLearning(this, result.id, source).catch(() => { /* Persisted local metadata is already complete. */ });
+    // Enrichment callbacks never forward into n8n. New intake from either route
+    // is already committed and broadcast before asynchronous dual-webhook delivery.
+    if (!result.duplicate && !callback) void enrichLearning(this, result.id, source).catch(() => { /* Persisted local metadata is already complete. */ });
     return result;
   }
   events = new EventEmitter().setMaxListeners(100);
@@ -80,7 +81,7 @@ export class LedgerService {
   }
   state(): AppState {
     const snapshot = this.snapshot;
-    const live = this.store.all<Transaction>("live-transaction").reverse();
+    const live = this.store.all<Transaction>("live-transaction").reverse().sort((a, b) => (b.receivedAt ?? "").localeCompare(a.receivedAt ?? ""));
     const transactions = [...live, ...(snapshot?.transactions ?? [])];
     const plan = getPlanning(this);
     const memory = this.store.memory() ?? (snapshot && this.ready ? rebuildMemory(this, plan) : null);

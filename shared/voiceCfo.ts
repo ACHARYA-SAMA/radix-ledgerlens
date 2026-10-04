@@ -1,8 +1,8 @@
 import type { AppState } from '../src/types/finance.ts';
 import type { Category } from './categories.ts';
 export type CfoResult = {
-  id: string; answer: string; targetTab: 'goals' | 'dashboard' | 'decision_trace' | 'analytics';
-  kind: 'rebalance' | 'simulation' | 'audit' | 'trace' | 'answer';
+  id: string; answer: string; targetTab: 'goals' | 'dashboard' | 'decision_trace' | 'analytics' | 'fraud_alert';
+  kind: 'rebalance' | 'simulation' | 'audit' | 'trace' | 'fraud' | 'answer';
   highlightCategories: Category[]; protectedGoals: string[];
   rebalanceActions: { category: Category; name: string; before: number; after: number; amount: number }[];
   amount?: number; shortfall?: number; safeDailySpend?: number; provisional?: boolean;

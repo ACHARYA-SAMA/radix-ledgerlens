@@ -77,6 +77,8 @@ export default function App() {
     const known = new Set(previous.transactions.map(tx => tx.id));
     const incoming = merged.transactions.filter(tx => tx.origin && !known.has(tx.id));
     if (!incoming.length) return;
+    // A new live receipt takes precedence over a snapshot of a previous voice audit.
+    setCfo(current => current?.ledgerFilter ? null : current);
     if (merged.planning && inQuietHours(merged.planning.profile)) return;
     const received = merged.planning?.profile.liveNotifications === false ? [] : incoming.slice(0, 2).map(tx => ({ id: tx.id, title: "📱 Live Transaction Received", detail: `${displayText(tx.vendorClientName)} · ${inr(tx.amount)} ${tx.type === "credit" ? "received" : "spent"}` }));
     const oldAlerts = new Set(previous.planning && previous.dataDate ? planningAlerts(previous.transactions, previous.planning, previous.dataDate, previous.subscriptions).map(a => a.id) : []);
@@ -114,7 +116,7 @@ export default function App() {
         const nextIds = new Set(next.transactions.map(tx => tx.id));
         const idsChanged = currentIds.size !== nextIds.size || [...nextIds].some(id => !currentIds.has(id));
         const memoryChanged = (next.memory?.revision ?? 0) > (current?.memory?.revision ?? 0);
-        if (idsChanged || memoryChanged) acceptState(next);
+        if ((next.memory?.revision ?? 0) >= (current?.memory?.revision ?? 0) && (idsChanged || memoryChanged)) acceptState(next);
       } catch { /* The regular state refresh and SSE reconnect paths remain available. */ }
     }, 2000);
     const controller = new AbortController();
@@ -192,6 +194,30 @@ export default function App() {
       setError((e as Error).message);
     }
   };
+  const handleVoiceCfoResult = (result: CfoResult) => {
+    // These are the exact Navigation tab IDs: dashboard, goals, decision_trace and fraud_alert.
+    // Apply the crisis plan immediately so its cards and budget bars animate before a refresh.
+    if (result.kind === "rebalance" && result.id.startsWith("stage-")) {
+      setState(current => {
+        if (!current?.planning) return current;
+        const next = structuredClone(current);
+        const planning = next.planning;
+        if (!planning) return current;
+        for (const action of result.rebalanceActions) {
+          const budget = planning.budgets.find(item => item.category === action.category);
+          if (budget) budget.limit = Math.max(0, budget.limit + action.amount);
+        }
+        stateRef.current = next;
+        return next;
+      });
+    }
+    setCfo(result);
+    setCfoStage(-1);
+    if (result.state) { requestVersion.current++; acceptState(result.state); }
+    setActiveTab(result.targetTab);
+    if (result.transactionId) setSelectedTraceTxId(result.transactionId);
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+  };
 
   return (
     <div className="ledger-app min-h-screen bg-[#050608] bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(226,232,240,0.12),transparent_70%)] text-slate-100 flex flex-col font-sans selection:bg-white selection:text-black">
@@ -206,6 +232,7 @@ export default function App() {
         theme={theme}
         onToggleTheme={toggleTheme}
         onPhoneRemote={() => setShowPhone(true)}
+        onVoiceCfo={() => window.dispatchEvent(new Event("cfo-open"))}
         onPreferences={() => setShowPreferences(true)}
       />
 
@@ -237,9 +264,9 @@ export default function App() {
       </div>
       {/* Main Content View with Smooth Kinetic Motion Tab Switching */}
       <main className="flex-1 flex flex-col">
-        {cfo && activeTab === cfo.targetTab && <CfoExecution result={cfo} stage={cfoStage} onClear={() => setCfo(null)} onCommand={query => window.dispatchEvent(new CustomEvent("cfo-command", {detail: query}))} />}
+        {cfo && activeTab === cfo.targetTab && !(activeTab === "goals" && cfo.kind === "rebalance") && <CfoExecution result={cfo} stage={cfoStage} onClear={() => setCfo(null)} onCommand={cfo.id.startsWith("stage-") ? undefined : query => window.dispatchEvent(new CustomEvent("cfo-command", {detail: query}))} />}
         <AnimatePresence mode="wait">
-          {activeTab === "goals" && <motion.div key="goals" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>{state.dataDate && state.planning ? <GoalsView cfo={cfo} state={state} onSave={body => mutate("/planning", body)} onPreferences={() => setShowPreferences(true)} /> : <div className="finance-shell finance-page"><h1>Your financial plan starts here.</h1><p>Sync your bank feed to unlock goals, budgets and insights from your statements.</p><button className="finance-button primary" disabled={isSyncing} onClick={handleSyncNova}>{isSyncing ? "Syncing…" : "Sync bank feed"}</button></div>}</motion.div>}
+          {activeTab === "goals" && <motion.div key="goals" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>{state.dataDate && state.planning ? <GoalsView onCfoClear={() => setCfo(null)} cfo={cfo} state={state} onSave={body => mutate("/planning", body)} onPreferences={() => setShowPreferences(true)} /> : <div className="finance-shell finance-page"><h1>Your financial plan starts here.</h1><p>Sync your bank feed to unlock goals, budgets and insights from your statements.</p><button className="finance-button primary" disabled={isSyncing} onClick={handleSyncNova}>{isSyncing ? "Syncing…" : "Sync bank feed"}</button></div>}</motion.div>}
           {/* SCREEN 1: MAIN DASHBOARD with 50/50 Bipartite Fluid Horizon & Optical Inversion */}
           {activeTab === "dashboard" && (
             <motion.div
@@ -374,7 +401,7 @@ export default function App() {
           )}
         </AnimatePresence>
       </main>
-      <VoiceCFO onStage={setCfoStage} onResult={result => { setCfo(result); setCfoStage(-1); if (result.state) {requestVersion.current++; acceptState(result.state);} setActiveTab(result.targetTab); if(result.transactionId) setSelectedTraceTxId(result.transactionId); window.scrollTo({top:0,behavior:"smooth"}); }} />
+      <VoiceCFO state={state} onStage={setCfoStage} onResult={handleVoiceCfoResult} />
       {showPreferences && state.planning && <ProfilePreferences plan={state.planning} onSave={body => mutate("/planning", body)} onClose={() => setShowPreferences(false)} />}
       {showPhone && <PhoneRemote onClose={() => setShowPhone(false)} />}
       <div className="finance-toast-stack" aria-live="polite" aria-atomic="false">{toasts.map(toast => <div className={`finance-toast ${toast.severity ?? ""}`} key={toast.id} role="status"><div><strong>{toast.title}</strong><p>{displayText(toast.detail)}</p></div><button onClick={() => setToasts(current => current.filter(t => t.id !== toast.id))} aria-label="Dismiss notification"><X size={15} /></button></div>)}</div>

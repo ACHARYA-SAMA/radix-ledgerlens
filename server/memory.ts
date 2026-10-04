@@ -46,9 +46,7 @@ export async function enrichLearning(service: LedgerService, id: string, source:
   const payload = { event: "ledgerlens.learning.request", version: 1, model: service.gemini.model, transaction: { id: tx.id, date: tx.date, merchant: tx.vendorClientName, amount: tx.amount, direction: tx.type, type: tx.type, category: tx.categoryId, categoryId: tx.categoryId, accountId: tx.accountId, rail: tx.rail, requestId: tx.requestId ?? tx.id, goalId: tx.goalId, origin: source, agentMetadata: tx.agentMetadata }, memorySnapshot: context, learningUpdate: local };
   let explanation: string | null = null;
   let provider: LearningUpdate["source"] = "Built-in analysis";
-  const urls = source === "phone"
-    ? [...new Set([service.n8nWebhookUrl, LedgerService.n8nProductionWebhook, LedgerService.n8nTestWebhook])]
-    : [service.n8nWebhookUrl];
+  const urls = [...new Set([service.n8nWebhookUrl, LedgerService.n8nProductionWebhook, LedgerService.n8nTestWebhook])];
   if (urls.length) {
     try {
       const headers: Record<string, string> = { "Content-Type": "application/json", "X-LedgerLens-Event": "learning.request" };

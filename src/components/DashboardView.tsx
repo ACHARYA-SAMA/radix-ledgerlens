@@ -50,10 +50,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
   useEffect(() => { if(cfo?.ledgerFilter) {setPage(0); setSearchQuery(""); setSelectedAccount("ALL"); setSelectedRail("ALL"); setSelectedStatus("ALL"); document.getElementById("cfo-ledger")?.scrollIntoView({behavior:"smooth",block:"start"});} }, [cfo?.id]);
+  useEffect(() => { if (transactions[0]?.origin) setPage(0); }, [transactions[0]?.id]);
   // Filter & sort logic
   const filteredTransactions = useMemo(() => {
-    const live = transactions.filter(tx => Boolean(tx.origin || tx.id.startsWith("tx_") || tx.agentMetadata));
-    const historical = transactions.filter(tx => !Boolean(tx.origin || tx.id.startsWith("tx_") || tx.agentMetadata));
+    const live = transactions.filter(tx => Boolean(tx.origin));
+    const historical = transactions.filter(tx => !Boolean(tx.origin));
     const filtered = historical
       .filter((tx) => {
         if (selectedRail !== "ALL" && tx.rail !== selectedRail) return false;

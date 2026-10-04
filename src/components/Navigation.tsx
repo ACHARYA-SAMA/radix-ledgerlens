@@ -1,7 +1,7 @@
 /* Repository touch marker. */
 import React from "react";
 import { motion } from "motion/react";
-import { Play, RefreshCw, AlertTriangle, Zap, LogOut, Moon, Sun, Smartphone, Settings2 } from "lucide-react";
+import { Play, RefreshCw, AlertTriangle, Zap, LogOut, Moon, Sun, Smartphone, Settings2, Mic } from "lucide-react";
 import type { Theme } from "../lib/theme";
 import { sound } from "../utils/audioSynthesizer";
 import { supabase } from "../lib/supabase";
@@ -27,6 +27,7 @@ interface NavigationProps {
   theme: Theme;
   onToggleTheme: () => void;
   onPhoneRemote: () => void;
+  onVoiceCfo: () => void;
   onPreferences: () => void;
 }
 
@@ -40,6 +41,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   theme,
   onToggleTheme,
   onPhoneRemote,
+  onVoiceCfo,
   onPreferences,
 }) => {
   const navItems = [
@@ -134,6 +136,7 @@ export const Navigation: React.FC<NavigationProps> = ({
       {/* Zone 3: Glossy Liquid Silver Button with White Hover Fill */}
       <div className="flex shrink-0 items-center gap-2">
         <button type="button" onClick={onPhoneRemote} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs text-slate-300 border border-white/20" title="Phone remote"><Smartphone size={14} /><span className="hidden sm:inline">Phone Remote</span></button>
+        <button type="button" onClick={onVoiceCfo} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs text-emerald-100 border border-emerald-300/35 bg-emerald-300/10 hover:bg-emerald-300/20" title="Open Voice CFO"><Mic size={14} /><span className="hidden sm:inline">Voice CFO</span></button>
         <button type="button" onClick={onPreferences} className="p-2 rounded-lg text-slate-300 border border-white/20" aria-label="Profile and alert preferences"><Settings2 size={14} /></button>
         <button type="button" role="switch" aria-checked={theme === "light"} aria-label="Light mode" title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`} onClick={onToggleTheme} className="theme-toggle" >
           <span className="theme-toggle-icon">{theme === "dark" ? <Moon size={14} /> : <Sun size={14} />}</span>
