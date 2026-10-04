@@ -101,7 +101,7 @@ export function VoiceCFO({onResult, onStage, state}: {state: AppState;onResult: 
     window.addEventListener('keydown',key);
     return ()=>{window.removeEventListener('cfo-command',command);window.removeEventListener('cfo-open',openCfo);window.removeEventListener('keydown',key);++generation.current; controller.current?.abort(); if(recognition.current) {recognition.current.onend=null;recognition.current.abort();} window.speechSynthesis?.cancel();clearTimeout(narrationTimer.current);};
   },[]);
-  return <aside className={`cfo-shell ${phase}`} aria-label="Voice CFO">
+  return <><aside className={`cfo-shell ${phase}`} aria-label="Voice CFO">
     {open && <section className="cfo-hud"><header><strong>VOICE CFO <small>LIVE LEDGER</small></strong><button aria-label="Close Voice CFO" onClick={()=>{setOpen(false);++generation.current;controller.current?.abort();lock.current=false;advance.current=null;clearTimeout(narrationTimer.current);window.speechSynthesis?.cancel();if(recognition.current){recognition.current.onend=null;recognition.current.abort();}setPhase('idle');}}><X size={18}/></button></header>
       <div className="cfo-wave" aria-hidden="true">{Array.from({length:24},(_,i)=><i key={i} style={{animationDelay:`${i*.055}s`}}/>)}</div>
       <p className="cfo-status" role="status">{phase === 'listening' ? 'Listening…' : phase === 'thinking' ? 'Reading ledger · solving constraints…' : phase === 'speaking' ? 'CFO briefing' : 'Ask. Plan. See it happen.'}</p>
@@ -109,7 +109,6 @@ export function VoiceCFO({onResult, onStage, state}: {state: AppState;onResult: 
       {error && <p role="alert">{error}</p>}{answer && <p className="cfo-answer">{answer}</p>}
       <small>QUICK STAGE COMMANDS · fixed scenarios + live ledger audits</small><div className="cfo-chips">{STAGE_COMMANDS.map((query,i)=><button disabled={phase==='thinking'} key={query} title={query} aria-label={query} onClick={()=>void execute(query)}>{['Cover medical expense','Simulate flights','Audit food spend','Narrate latest trace'][i]}</button>)}</div>
     </section>}
-    <div className="cfo-quick-actions" aria-label="Voice CFO quick actions">{STAGE_COMMANDS.map((query,i)=><button key={query} onClick={()=>void execute(query)}>{['⚡ Cover ₹12k Medical (Auto-Rebalance)','✈️ Can I Afford ₹15k Flights?','🍔 Show Dining Burn & Anomalies','🧠 Explain Last AI Decision Trace'][i]}</button>)}</div>
     {open && <div className="cfo-bar"><button className="cfo-orb" aria-label="Start Voice CFO microphone" onClick={start}><Mic size={22}/></button><button onClick={start}>Speak to CFO <small>SPACE TO SPEAK</small></button><button aria-label={muted?'Unmute CFO':'Mute CFO'} onClick={()=>{muteRef.current=!muted;setMuted(!muted);if(!muted) {const finish=advance.current;window.speechSynthesis?.cancel();finish?.();}}}>{muted?<VolumeX size={18}/>:<Volume2 size={18}/>}</button></div>}
-  </aside>;
+  </aside><div className="cfo-quick-actions" aria-label="Voice CFO quick actions">{STAGE_COMMANDS.map((query,i)=><button key={query} onClick={()=>void execute(query)}>{['⚡ Cover ₹12k Medical (Auto-Rebalance)','✈️ Can I Afford ₹15k Flights?','🍔 Show Dining Burn & Anomalies','🧠 Explain Last AI Decision Trace'][i]}</button>)}</div></>;
 }
