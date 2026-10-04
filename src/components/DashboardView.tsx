@@ -1,4 +1,5 @@
 /* Repository touch marker. */
+import type { CfoResult } from "../../shared/voiceCfo.ts";
 import { displayText } from "../../shared/branding.ts";
 import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -19,6 +20,7 @@ import {
 import { sound } from "../utils/audioSynthesizer";
 
 interface DashboardViewProps {
+  cfo?: CfoResult | null;
   transactions: Transaction[];
   onSelectTransactionForTrace: (tx: Transaction) => void;
   onOpenSharePage: (token: string) => void;
@@ -27,6 +29,7 @@ interface DashboardViewProps {
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   transactions,
+  cfo,
   onSelectTransactionForTrace,
   onOpenSharePage,
   onTriggerPluck,
@@ -46,6 +49,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const [sortAsc, setSortAsc] = useState(false);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
+  useEffect(() => { if(cfo?.ledgerFilter) {setPage(0); setSearchQuery(""); setSelectedAccount("ALL"); setSelectedRail("ALL"); setSelectedStatus("ALL"); document.getElementById("cfo-ledger")?.scrollIntoView({behavior:"smooth",block:"start"});} }, [cfo?.id]);
   // Filter & sort logic
   const filteredTransactions = useMemo(() => {
     const live = transactions.filter(tx => Boolean(tx.origin || tx.id.startsWith("tx_") || tx.agentMetadata));
@@ -87,8 +91,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         if (valA > valB) return sortAsc ? 1 : -1;
         return 0;
       });
+    if (cfo?.ledgerFilter) {
+      const lookup = new Map(transactions.map(t => [t.id,t]));
+      return cfo.ledgerFilter.ids.flatMap(id => lookup.has(id) ? [lookup.get(id)!] : []);
+    }
     return [...live, ...filtered];
   }, [
+    cfo,
     transactions,
     selectedRail,
     selectedAccount,
@@ -117,7 +126,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   };
 
   return (
-    <div className="w-full flex flex-col bg-black text-slate-100 min-h-screen">
+    <div id="cfo-ledger" className="w-full flex flex-col bg-black text-slate-100 min-h-screen">
       <section className="border-b border-white/15 px-4 py-4 sm:px-6">
         <div className="mx-auto max-w-[1600px]">
           <div className="flex flex-col items-stretch justify-between gap-3 md:flex-row md:items-center">
@@ -327,7 +336,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           whileHover={{
                             backgroundColor: "rgba(255, 255, 255, 0.05)",
                           }}
-                          className={`cursor-pointer transition-colors group ${
+                          className={`cursor-pointer transition-colors group ${cfo?.ledgerFilter?.ids.slice(0,3).includes(tx.id) ? "cfo-audit-row" : ""} ${
                             isFraud
                               ? "bg-red-950/20 text-white border-l-2 border-red-500"
                               : ""

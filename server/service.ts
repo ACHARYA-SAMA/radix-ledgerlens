@@ -24,12 +24,14 @@ import { getPlanning, addLiveTransaction } from "./personalFinance.ts";
 import { planningMetrics, inr } from "../shared/planning.ts";
 import { rebuildMemory, enrichLearning, receiveLearningCallback } from "./memory.ts";
 import { normalizeLiveInput, unpackAgentEnvelope, validateAgentMetadata } from "./agentPipeline.ts";
+import { voiceCommand } from "./voiceCfo.ts";
 import { adaptiveMetrics, merchantKey } from "../shared/memory.ts";
 type Snapshot = ReturnType<typeof buildDataset> & {
   syncedAt: string;
   warnings: string[];
 };
 export class LedgerService {
+  voiceCommand(input: unknown) { return voiceCommand(this, input); }
   static readonly n8nProductionWebhook = "https://rish011.app.n8n.cloud/webhook/transaction-ingest";
   static readonly n8nTestWebhook = "https://rish011.app.n8n.cloud/webhook-test/transaction-ingest";
   get n8nWebhookUrl() { return process.env.N8N_INBOUND_WEBHOOK_URL?.trim() || LedgerService.n8nProductionWebhook; }

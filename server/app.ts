@@ -49,6 +49,15 @@ export function createApp(service: LedgerService, publicBaseUrl?: string, verify
     const result = service.ingestLive(req.body, source);
     res.status(result.duplicate || "status" in result ? 200 : 201).json(result);
   });
+  app.post("/api/voice-command", route(async (req, res) => {
+    if (!req.is("application/json")) throw new ServiceError("Send application/json.", 415);
+    const key = `cfo:${req.ip}`;
+    const now = Date.now();
+    const rate = intakeRates.get(key);
+    if (rate && rate.until > now && rate.count >= 20) throw new ServiceError("Please wait before sending more CFO commands.", 429);
+    intakeRates.set(key, {until: rate && rate.until > now ? rate.until : now + 60000, count: rate && rate.until > now ? rate.count + 1 : 1});
+    res.json(await service.voiceCommand(req.body));
+  }));
   app.post("/api/live-transaction", intake("phone"));
   app.post("/api/webhook/n8n", intake("n8n"));
   app.get("/api/live-events", (_req, res) => {

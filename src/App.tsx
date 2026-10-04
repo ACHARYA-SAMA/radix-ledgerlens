@@ -30,9 +30,14 @@ import { displayText } from "../shared/branding.ts";
 import { planningAlerts, inr, inQuietHours } from "../shared/planning.ts";
 import { requestVoiceAudio, playVoiceAudio } from "./lib/voiceAudio.ts";
 import { streamMemory } from "./lib/memoryStream.ts";
+import { VoiceCFO } from "./components/VoiceCFO.tsx";
+import { CfoExecution } from "./components/CfoExecution.tsx";
+import type { CfoResult } from "../shared/voiceCfo.ts";
 import { authHeaders } from "./lib/supabase.ts";
 
 export default function App() {
+  const [cfo, setCfo] = useState<CfoResult | null>(null);
+  const [cfoStage, setCfoStage] = useState(-1);
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
   const [state, setState] = useState<AppState | null>(null);
   const [error, setError] = useState("");
@@ -232,8 +237,9 @@ export default function App() {
       </div>
       {/* Main Content View with Smooth Kinetic Motion Tab Switching */}
       <main className="flex-1 flex flex-col">
+        {cfo && activeTab === cfo.targetTab && <CfoExecution result={cfo} stage={cfoStage} onClear={() => setCfo(null)} onCommand={query => window.dispatchEvent(new CustomEvent("cfo-command", {detail: query}))} />}
         <AnimatePresence mode="wait">
-          {activeTab === "goals" && <motion.div key="goals" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>{state.dataDate && state.planning ? <GoalsView state={state} onSave={body => mutate("/planning", body)} onPreferences={() => setShowPreferences(true)} /> : <div className="finance-shell finance-page"><h1>Your financial plan starts here.</h1><p>Sync your bank feed to unlock goals, budgets and insights from your statements.</p><button className="finance-button primary" disabled={isSyncing} onClick={handleSyncNova}>{isSyncing ? "Syncing…" : "Sync bank feed"}</button></div>}</motion.div>}
+          {activeTab === "goals" && <motion.div key="goals" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>{state.dataDate && state.planning ? <GoalsView cfo={cfo} state={state} onSave={body => mutate("/planning", body)} onPreferences={() => setShowPreferences(true)} /> : <div className="finance-shell finance-page"><h1>Your financial plan starts here.</h1><p>Sync your bank feed to unlock goals, budgets and insights from your statements.</p><button className="finance-button primary" disabled={isSyncing} onClick={handleSyncNova}>{isSyncing ? "Syncing…" : "Sync bank feed"}</button></div>}</motion.div>}
           {/* SCREEN 1: MAIN DASHBOARD with 50/50 Bipartite Fluid Horizon & Optical Inversion */}
           {activeTab === "dashboard" && (
             <motion.div
@@ -247,6 +253,7 @@ export default function App() {
               {/* Live statement overview leads immediately into the ledger. */}
               <InsightsPanel analytics={analytics} insights={state.insights} transactions={transactions} asOf={state.dataDate} defaultPeriod={state.planning?.profile.defaultSpendPeriod} />
               <DashboardView
+                cfo={cfo}
                 transactions={transactions}
                 onSelectTransactionForTrace={handleSelectTransactionForTrace}
                 onOpenSharePage={handleOpenSharePage}
@@ -264,6 +271,7 @@ export default function App() {
               transition={{ duration: 0.3 }}
             >
               <AnalyticsView
+                cfo={cfo}
                 transactions={transactions}
                 bankAccounts={state.bankAccounts}
                 subscriptions={state.subscriptions}
@@ -303,6 +311,7 @@ export default function App() {
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             >
               <DecisionTraceView
+                cfoStage={cfo?.kind === "trace" ? cfoStage : undefined}
                 transactions={transactions}
                 memory={state.memory}
                 initialTransactionId={selectedTraceTxId}
@@ -365,6 +374,7 @@ export default function App() {
           )}
         </AnimatePresence>
       </main>
+      <VoiceCFO onStage={setCfoStage} onResult={result => { setCfo(result); setCfoStage(-1); if (result.state) {requestVersion.current++; acceptState(result.state);} setActiveTab(result.targetTab); if(result.transactionId) setSelectedTraceTxId(result.transactionId); window.scrollTo({top:0,behavior:"smooth"}); }} />
       {showPreferences && state.planning && <ProfilePreferences plan={state.planning} onSave={body => mutate("/planning", body)} onClose={() => setShowPreferences(false)} />}
       {showPhone && <PhoneRemote onClose={() => setShowPhone(false)} />}
       <div className="finance-toast-stack" aria-live="polite" aria-atomic="false">{toasts.map(toast => <div className={`finance-toast ${toast.severity ?? ""}`} key={toast.id} role="status"><div><strong>{toast.title}</strong><p>{displayText(toast.detail)}</p></div><button onClick={() => setToasts(current => current.filter(t => t.id !== toast.id))} aria-label="Dismiss notification"><X size={15} /></button></div>)}</div>

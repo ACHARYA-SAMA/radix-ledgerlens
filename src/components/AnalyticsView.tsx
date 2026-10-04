@@ -42,6 +42,7 @@ import {
 } from "../lib/analyticsMath";
 
 interface Props {
+  cfo?: import("../../shared/voiceCfo.ts").CfoResult | null;
   transactions: Transaction[];
   bankAccounts: BankAccountSummary[];
   subscriptions: SubscriptionSummary[];
@@ -165,6 +166,7 @@ function expectedRenewalInRange(
 }
 
 export function AnalyticsView({
+  cfo,
   transactions,
   bankAccounts,
   subscriptions,
@@ -214,9 +216,10 @@ export function AnalyticsView({
     setPreset(choice);
     sound.playPluck(0.45, 0.2);
   };
+  useEffect(() => { if(cfo?.ledgerFilter) {setBankId("");setSelectedDate(null);setPreset("This Month");} }, [cfo?.id]);
   const rangeRows = useMemo(
-    () => filterTransactions(transactions, { start, end, bankId }),
-    [transactions, start, end, bankId],
+    () => filterTransactions(cfo?.ledgerFilter ? transactions.filter(t => cfo.ledgerFilter!.ids.includes(t.id)) : transactions, { start, end, bankId }),
+    [transactions, start, end, bankId, cfo],
   );
   const activeRows = useMemo(
     () =>

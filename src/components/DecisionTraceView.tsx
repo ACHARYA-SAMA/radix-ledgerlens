@@ -39,6 +39,7 @@ import type { AgentMemory } from "../../shared/memory.ts";
 import { LearningDetail } from "./AdaptiveMemory.tsx";
 
 interface DecisionTraceViewProps {
+  cfoStage?: number;
   memory?: AgentMemory;
   transactions?: Transaction[];
   initialTransactionId?: string;
@@ -47,11 +48,13 @@ interface DecisionTraceViewProps {
 const TraceGraph: React.FC<DecisionTraceViewProps> = ({
   transactions = [],
   initialTransactionId,
+  cfoStage,
   memory,
 }) => {
   const [selectedScenarioId, setSelectedScenarioId] = useState(
     initialTransactionId || transactions[0].id,
   );
+  useEffect(() => {if(initialTransactionId) setSelectedScenarioId(initialTransactionId);}, [initialTransactionId]);
   const tx =
     transactions.find((t) => t.id === selectedScenarioId) || transactions[0];
   const signature = JSON.stringify(tx.trace);
@@ -121,7 +124,8 @@ const TraceGraph: React.FC<DecisionTraceViewProps> = ({
     };
   }, [tx.id, signature, tx.category, tx.status]);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(cfoStage === undefined);
+  useEffect(() => { if(cfoStage !== undefined) {setIsPlaying(false); if(cfoStage >= 0) {setActiveStepIndex(cfoStage);setInspectedNodeId(scenario.activePathIds[cfoStage] ?? scenario.activePathIds[0]);}} }, [cfoStage]);
   const [inspectedNodeId, setInspectedNodeId] = useState(
     scenario.activePathIds[0],
   );
@@ -133,7 +137,7 @@ const TraceGraph: React.FC<DecisionTraceViewProps> = ({
   useEffect(() => {
     setActiveStepIndex(0);
     setInspectedNodeId(scenario.activePathIds[0]);
-    setIsPlaying(true);
+    setIsPlaying(cfoStage === undefined);
   }, [selectedScenarioId]);
   useEffect(() => {
     if (!isPlaying) return;
